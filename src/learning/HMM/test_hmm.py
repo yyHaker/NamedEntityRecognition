@@ -66,6 +66,7 @@ def convert_map_to_matrix(map, label_index1, label_index2):
     return m
 
 
+print "get the A, B and pi...................."
 A = convert_map_to_matrix(transition_probability, states_label_index, states_label_index)
 print A
 B = convert_map_to_matrix(emission_probability, states_label_index, observations_label_index)
@@ -76,10 +77,36 @@ print pi
 # print np.random.multinomial(1, pi)
 # print np.where([0, 1]) # 只有condition，返回非零值的坐标
 
-# generate observation sequence
+"""
+generate observation sequence
+"""
+print "generate observation sequence..............."
 h = HMM(A, B, pi)
 observations_data, states_data = h.simulate(10)
 print observations_data
 print states_data
+
+"""
+if observations=('normal', 'cold', 'dizzy'), 如何计算病情(states)以及相应的概率？
+"""
+print "call the viterbi............."
+observation_index = convert_observations_to_index(observations, observations_label_index)
+print observation_index
+V, p = h.viterbi(observation_index)
+print " " * 7, " ".join(("%10s" % observations_index_label[i]) for i in observation_index)
+for s in range(0, len(states)):
+    print "%7s: " % states_index_label[s] + " ".join("%10s" % ("%f" % v) for v in V[s])
+
+print '\n The most possible states and probability are:'
+P, ss = h.state_path(observation_index)
+for s in ss:
+    print states_index_label[s]
+print P
+
+
+
+
+
+
 
 
