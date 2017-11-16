@@ -27,4 +27,5 @@ Subdirectories:
 
 - 隐马尔科夫模型 -  http://www.hankcs.com/ml/hidden-markov-model.html， 这是介绍隐马尔科夫模型一个很好的博客，
 将HMM讲解的通俗易懂，还用python实现了一遍加深了理解
--
+- 最大熵模型 - http://www.hankcs.com/ml/the-logistic-regression-and-the-maximum-entropy-model.html, 这是一个介绍
+最大熵模型一个比较好的博客，还有相关实现可以加深理解
