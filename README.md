@@ -31,5 +31,5 @@ Subdirectories:
 最大熵模型一个比较好的博客，还有相关实现可以加深理解
 - 条件随机场(CRF, Conditional Random Field) - http://www.hankcs.com/ml/conditional-random-field.html, 这是一个介绍条件随机场的一个比较好的博客，
 并有CRF++代码实现的分析，可以加深理解
-- <<Neural Architectures for Named Entity Recognition(2016.ACL)>> - https://arxiv.org/pdf/1603.01360.pdf,这是一篇使用LSTM+CRF来进行NER任务，效果不错，而且网络结构也不复杂；另外
+- <<Neural Architectures for Named Entity Recognition(2016.ACL)>> - https://arxiv.org/pdf/1603.01360.pdf, 这是一篇使用LSTM+CRF来进行NER任务，效果不错，而且网络结构也不复杂；另外
 还提出了Transition-based Chunking models.
