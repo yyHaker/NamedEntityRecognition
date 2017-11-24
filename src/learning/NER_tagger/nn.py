@@ -193,7 +193,20 @@ class LSTM(object):
         # If we use batches, we have to permute the first and second dimension.
         if self.with_batch:
             self.input = input.dimshuffle(1, 0, 2)
-            outputs_info = [for x in [self.c_0, self.h_0]]
+            outputs_info = [T.alloc(x, self.input.shape[1], self.hidden_dim) for x in [self.c_0, self.h_0]]
+        else:
+            self.input = input
+            outputs_info = [self.c_0, self.h_0]
+
+        [_, h], _ = theano.scan(fn=recurrence, sequences=self.input, outputs_info=outputs_info,
+                                n_steps=self.input.shape[0])
+
+        self.h = h
+        self.output = h[-1]
+
+        return self.output
+
+
 
 
 
