@@ -33,3 +33,5 @@ Subdirectories:
 并有CRF++代码实现的分析，可以加深理解
 - <<Neural Architectures for Named Entity Recognition(2016.ACL)>> - https://arxiv.org/pdf/1603.01360.pdf, 这是一篇使用LSTM+CRF来进行NER任务，效果不错，而且网络结构也不复杂；另外
 还提出了Transition-based Chunking models.
+- 《Named Entity Recognition for Chinese Social Media with Jointly Trained Embeddings》阅读笔记，https://zhuanlan.zhihu.com/p/24160574?refer=xitucheng10
+- Sequence Tagging with Tensorflow, https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html
