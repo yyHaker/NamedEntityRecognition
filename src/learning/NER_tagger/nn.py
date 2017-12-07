@@ -201,8 +201,8 @@ class LSTM(object):
         [_, h], _ = theano.scan(fn=recurrence, sequences=self.input, outputs_info=outputs_info,
                                 n_steps=self.input.shape[0])
 
-        self.h = h
-        self.output = h[-1]
+        self.h = h               # (sequence_length, batch_size, output_dim)
+        self.output = h[-1]  # (batch_size, output_dim)
 
         return self.output
 
@@ -210,6 +210,7 @@ class LSTM(object):
 def log_sum_exp(x, axis=None):
     """
     Sum probabilities in the log-space.
+    (equal to calculate logsum(exp(x)), x is a vector or matrix.)
     :param x:
     :param axis:
     :return:
@@ -236,23 +237,28 @@ def forward(observations, transitions, viterbi=False, return_alpha=False,
           - the final probability , which can be :
                - the sum of the probabilities of all paths
                - the probabilities of the best path (Viterbi)
-    :param observations:
-    :param transitions:
+    :param observations: sequence as shape (n_steps, n_classes),
+                observations[i][j]表示第i个词标注为第j个tag的分数
+    :param transitions: sequence as shape (n_classes, n_classes),
+                transitions[i][j]表示第i个tag->第j个tag的转移分数
     :param viterbi:
     :param return_alpha:
     :param return_best_sequence:
     :return:
     """
+    # 确保return_best_sequence为false时, viterbi和return_alpha任意，
+    # return_best_sequence为true时，viterbi为true，return_alpha为false
     assert not return_best_sequence or (viterbi and not return_alpha)
 
     def recurrence(obs, previous, transitions):
-        previous = previous.dimshuffle(0, 'x')
-        obs = obs.dimshuffle('x', 0)
+        # 计算当前所得的分数scores
+        obs = obs.dimshuffle('x', 0)  # 1 X row
+        previous = previous.dimshuffle(0, 'x')  # row X 1
         if viterbi:
-            scores = previous + obs + transitions   # (n_classes, n_classes), 找出当前tag i->j的最大的那个path
-            out = scores.max(axis=0)
+            scores = obs + previous + transitions   # (n_classes, n_classes), 找出当前tag i->j的最大的那个path
+            out = scores.max(axis=0)   # 找出每一列的最大值
             if return_best_sequence:
-                out2 = scores.argmax(axis=0)
+                out2 = scores.argmax(axis=0)  # 当前最大分数索引值
                 return out, out2
             else:
                 return out                                 # the probabilities of the best path
@@ -260,18 +266,19 @@ def forward(observations, transitions, viterbi=False, return_alpha=False,
             return log_sum_exp(previous + obs + transitions, axis=0)  # the sum of the probabilities of all paths
 
     initial = observations[0]
-    alpha, _ = theano.scan(fn=recurrence, outputs_info=(initial, None) if return_best_sequence else initial,
-                           sequences=[observations[1:]], non_sequences=transitions)
+    alpha, _ = theano.scan(fn=recurrence, sequences=[observations[1:]],
+                           outputs_info=(initial, None) if return_best_sequence else initial,
+                           non_sequences=transitions)  # 这里设置为None，那返回的是什么值？
 
-    if return_alpha:
+    if return_alpha:   # alpha represents ?
         return alpha
-    elif return_best_sequence:
-        sequence, _ = theano.scan(fn=lambda beta_i, previous: beta_i[previous], outputs_info=T.cast(T.argmax(alpha[0][-1]), 'int32'),
-                                  sequences=T.cast(alpha[1][::-1], 'int32'))    # alpha[1][::-1]逆序
+    elif return_best_sequence:  # viterbi一定为true， alpha represents the probabilities of the best path, (alpha, sequence)
+        sequence, _ = theano.scan(fn=lambda beta_i, previous: beta_i[previous], sequences=T.cast(alpha[1][::-1], 'int32'),
+                                  outputs_info=T.cast(T.argmax(alpha[0][-1]), 'int32'))    # alpha[1][::-1]逆序
         sequence = T.concatenate([sequence[::-1], [T.argmax(alpha[0][-1])]])
         return sequence
     else:
-        if viterbi:
-            return alpha[-1].max(axis=0)   # the probabilities of the best path
-        else:
-            return log_sum_exp(alpha[-1], axis=0)  # the sum of the probabilities of all paths
+        if viterbi:  # alpha represents the probabilities of the best path
+            return alpha[-1].max(axis=0)  # alpha[-1]默认为列向量(n,)
+        else:   # alpha represents the sum of the probabilities of all paths
+            return log_sum_exp(alpha[-1], axis=0)  # alpha已经是log_sum_exp,为什么还需要log_sum_exp?
