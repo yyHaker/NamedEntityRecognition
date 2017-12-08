@@ -81,6 +81,15 @@ def create_mapping(dico):
     :param dico: {item: count, ....}
                dico.iitems(): {(item, count), ...}
     :return:
+      'id_to_item:' id越小，频率越高
+      'item_to_id:'
+      example:
+       enumerate(sorted_items)
+         0 ('hello', 3)
+         1 ('good', 2)
+         2 ('best', 1)
+         3 ('cell', 1)
+         4 ('tanh', 1)
     """
     sorted_items = sorted(dico.items(), key=lambda x: (-x[1], x[0]))
     id_to_item = {i: v[0] for i, v in enumerate(sorted_items)}
@@ -168,7 +177,7 @@ def iobes_iob(tags):
 def insert_singletons(words, singletons, p=0.5):
     """
     Replace singletons by the unknown word with a probability p.
-    :param words:
+    :param words: ??
     :param singletons: 集合
     :param p:
     :return:
@@ -182,11 +191,143 @@ def insert_singletons(words, singletons, p=0.5):
     return new_words
 
 
+def pad_word_chars(words):
+    """
+    Pad the characters of the words in a sentence.
+        Input:
+            - list of lists of ints (list of words, a word being a list of char indexes)
+        Output:
+            - padded list of lists of ints
+            - padded list of lists of ints (where chars are reversed)
+            - list of ints corresponding to the index of the last character of each word
+    :param words:
+    :return:
+    """
+    max_length = max([len(word) for word in words])
+    char_for = []
+    char_rev = []
+    char_pos = []
+    for word in words:
+        padding = [0] * (max_length - len(word))
+        char_for.append(word + padding)
+        char_rev.append(word[::-1] + padding)
+        char_pos.append(len(word) - 1)
+    return char_for, char_rev, char_pos
+
+
+def create_input(data, parameters, add_label, singletons=None):
+    """
+    Take sentence data and return an input for
+    the training or the evaluation function.
+    :param data:
+    :param parameters:
+    :param add_label:
+    :param singletons: ?
+    :return:
+    """
+    words = data['words']
+    chars = data['chars']  # list of lists of ints (list of words, a word being a list of char indexes)
+    if singletons is not None:
+        words = insert_singletons(words, singletons)
+    if parameters['cap_dim']:
+        caps = data['caps']
+
+    char_for, char_rev, char_pos = pad_word_chars(chars)
+    input = []
+    if parameters['word_dim']:
+        input.append(words)
+    if parameters['char_dim']:
+        input.append(char_for)
+        if parameters['char_bidirect']:
+            input.append(char_rev)
+        input.append(char_pos)
+    if parameters['cap_dim']:
+        input.append(caps)
+    if add_label:
+        input.append(data['tags'])
+    return input
+
+
+def evaluate(parameters, f_eval, raw_sentences, parsed_sentences,
+             id_to_tag, dictionary_tags):
+    """
+    Evaluate current model using CoNLL script.
+
+    :param parameters:
+    :param f_eval:
+    :param raw_sentences:
+    :param parsed_sentences:
+    :param id_to_tag:
+    :param dictionary_tags:
+    :return:
+    """
+    n_tags = len(id_to_tag)
+    predictions = []
+    count = np.zeros((n_tags, n_tags), dtype=np.int32)
+
+    for raw_sentence, data in zip(raw_sentences, parsed_sentences):
+        input = create_input(data, parameters, False)
+        if parameters['crf']:
+            y_preds = np.array(f_eval(*input))[1:-1]
+        else:
+            y_preds = f_eval(*input).argmax(axis=1)
+        y_reals = np.array(data['tags']).astype(np.int32)
+        assert len(y_preds) == len(y_reals)
+        p_tags = [id_to_tag[y_pred] for y_pred in y_preds]
+        r_tags = [id_to_tag[y_real] for y_real in y_reals]
+        if parameters['tag_scheme'] == 'iobes':
+            p_tags = iobes_iob(p_tags)
+            r_tags = iobes_iob(r_tags)
+        for i, (y_pred, y_real) in enumerate(zip(y_preds, y_reals)):
+            new_line = " ".join(raw_sentence[i][:-1] + [r_tags[i], p_tags[i]])
+            predictions.append(new_line)
+            count[y_real, y_pred] += 1
+        predictions.append("")
+
+    # Write predictions to disk and run CoNLL script externally
+    eval_id = np.random.randint(1000000, 2000000)
+    output_path = os.path.join(eval_temp, "eval.%i.output" % eval_id)
+    scores_path = os.path.join(eval_temp, "eval.%i.scores" % eval_id)
+    with codecs.open(output_path, 'w', 'utf8') as f:
+        f.write("\n".join(predictions))
+    os.system("%s < %s > %s" % (eval_script, output_path, scores_path))
+
+    # CoNLL evaluation results
+    eval_lines = [l.rstrip() for l in codecs.open(scores_path, 'r', 'utf8')]
+    for line in eval_lines:
+        print line
+
+    # Remove temp files
+    # os.remove(output_path)
+    # os.remove(scores_path)
+
+    # Confusion matrix with accuracy for each tag
+    print ("{: >2}{: >7}{: >7}%s{: >9}" % ("{: >7}" * n_tags)).format(
+        "ID", "NE", "Total",
+        *([id_to_tag[i] for i in xrange(n_tags)] + ["Percent"])
+    )
+    for i in xrange(n_tags):
+        print ("{: >2}{: >7}{: >7}%s{: >9}" % ("{: >7}" * n_tags)).format(
+            str(i), id_to_tag[i], str(count[i].sum()),
+            *([count[i][j] for j in xrange(n_tags)] +
+              ["%.3f" % (count[i][i] * 100. / max(1, count[i].sum()))])
+        )
+
+    # Global accuracy
+    print "%i/%i (%.5f%%)" % (
+        count.trace(), count.sum(), 100. * count.trace() / max(1, count.sum())
+    )
+
+    # F1 on all entities
+    return float(eval_lines[1].strip().split()[-1])
+
+
 if __name__ == "__main__":
     item_list = [['hello', 'cell', 'hello', 'good'], ['best', 'good', 'hello', 'tanh']]
     dicta = create_dico(item_list)
     print dicta
     print create_mapping(dicta)
+
 
 
 
