@@ -5,7 +5,7 @@ import codecs
 import theano
 import numpy as np
 
-models_path = "./models"
+models_path = "./models"  # 存储模型参数的路径
 eval_path = "./evaluation"
 eval_temp = os.path.join(eval_path, "temp")
 eval_script = os.path.join(eval_path, "conlleval")
@@ -52,7 +52,7 @@ def get_name(parameters):
             l.append((k, v[::-1][:v[::-1].index('/')][::-1]))
         else:
             l.append((k, v))
-    name = ",".join(["%s=%s" % (k, str(v).replace(',', '')) for k, v in l])
+    name = ",".join(["%s" % (str(v).replace(',', '')) for k, v in l])
     return "".join(i for i in name if i not in "\/:*?<>|")
 
 
@@ -177,8 +177,8 @@ def iobes_iob(tags):
 def insert_singletons(words, singletons, p=0.5):
     """
     Replace singletons by the unknown word with a probability p.
-    :param words: ??
-    :param singletons: 集合
+    :param words: a list of word index
+    :param singletons: 词频为1的单词index集合singletons
     :param p:
     :return:
     """
@@ -219,10 +219,17 @@ def create_input(data, parameters, add_label, singletons=None):
     """
     Take sentence data and return an input for
     the training or the evaluation function.
-    :param data:
-    :param parameters:
-    :param add_label:
-    :param singletons: ?
+    :param data: dict, representing a sentence,
+            type as follow{
+            'str_words': str_words,   # a list of words
+            'words': words,                # a list of word index
+            'chars': chars,                 # a list of lists of chars index
+            'caps': caps,                    # a list of cap_feature
+            'tags': tags                     # a list of tag ids
+          }
+    :param parameters: 模型参数
+    :param add_label: bool
+    :param singletons: 词频为1的单词集合singletons
     :return:
     """
     words = data['words']

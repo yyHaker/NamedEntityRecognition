@@ -37,6 +37,7 @@ class Model(object):
             self.mappings_path = os.path.join(model_path, 'mappings.pkl')
             # Create directory for the model if it does not exist
             if not os.path.exists(self.model_path):
+                # print model_path  名字太长了
                 os.makedirs(self.model_path)
             # Save the parameters to disk
             with open(self.parameters_path, 'wb') as f:
@@ -240,6 +241,7 @@ class Model(object):
             inputs.append(cap_layer.link(cap_ids))
 
         # Prepare final input
+        print inputs
         if len(inputs) != 1:
             inputs = T.concatenate(inputs, axis=1)
 

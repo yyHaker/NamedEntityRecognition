@@ -18,9 +18,9 @@ from model import Model
 
 # Read parameters from command line
 optparser = optparse.OptionParser()
-optparser.add_option("-T", "--train", default="", help="Train set location")
-optparser.add_option("-d", "--dev", default="", help="Dev set location")
-optparser.add_option("-t", "--test", default="", help="Test, set location")
+optparser.add_option("-T", "--train", default="./dataset/eng.train", help="Train set location")
+optparser.add_option("-d", "--dev", default="./dataset/eng.testa", help="Dev set location")
+optparser.add_option("-t", "--test", default="./dataset/eng.testb", help="Test, set location")
 optparser.add_option("-s", "--tag_scheme", default="iobes", help="Tagging scheme(IOB or IOBES)")
 optparser.add_option(
     "-l", "--lower", default="0",
@@ -96,7 +96,7 @@ parameters['word_dim'] = opts.word_dim
 parameters['word_lstm_dim'] = opts.word_lstm_dim
 parameters['word_bidirect'] = opts.word_bidirect == 1
 parameters['pre_emb'] = opts.pre_emb
-parameters['all_emb'] = opts.all_emb == 1
+parameters['all_emb'] = opts.all_emb == 1    # bool ?
 parameters['cap_dim'] = opts.cap_dim
 parameters['crf'] = opts.crf == 1
 parameters['dropout'] = opts.dropout
@@ -134,6 +134,99 @@ tag_scheme = parameters['tag_scheme']
 train_sentences = loader.load_sentences(opts.train, lower, zeros)
 dev_sentences = loader.load_sentences(opts.dev, lower, zeros)
 test_sentences = loader.load_sentences(opts.test, lower, zeros)
+
+# Use selected tagging scheme (IOB / IOBES)
+update_tag_scheme(train_sentences, tag_scheme)
+update_tag_scheme(dev_sentences, tag_scheme)
+update_tag_scheme(test_sentences, tag_scheme)
+
+# Create a dictionary / mapping of words
+# If we use pretrained embeddings, we add them to the dictionary.
+if parameters['pre_emb']:
+    dico_words_train = word_mapping(train_sentences, lower)[0]
+    augment_with_pretrained(dico_words_train.copy(), parameters['pre_emb'],
+                            list(itertools.chain.from_iterable(
+                                [[w[0] for w in s] for s in dev_sentences + test_sentences])
+                            ) if not parameters['all_emb'] else None
+                    )
+else:
+    dico_words, word_to_id, id_to_word = word_mapping(train_sentences, lower)
+    dico_words_train = dico_words
+
+# Create a dictionary and a mapping for words / POS tags / tags
+dico_chars, char_to_id, id_to_char = char_mapping(train_sentences)
+dico_tags, tag_to_id, id_to_tag = tag_mapping(train_sentences)
+
+# Index data
+train_data = prepare_dataset(train_sentences, word_to_id, char_to_id, tag_to_id, lower)
+dev_data = prepare_dataset(dev_sentences, word_to_id, char_to_id, tag_to_id, lower)
+test_data = prepare_dataset(test_sentences, word_to_id, char_to_id, tag_to_id, lower)
+
+print ("%i / %i / %i sentences in train / dev / test." % (len(train_data), len(dev_data), len(test_data)))
+
+# Save the mapping to the disk
+print "Saving the mapping to the disk...."
+model.save_mappings(id_to_word, id_to_char, id_to_tag)
+
+# Build the model
+f_train, f_eval = model.build(**parameters)
+
+# Reload previous model values
+if opts.reload():
+    print 'Reloading previous model....'
+    model.reload()
+
+#
+# Train network
+#
+# 词频为1的单词index集合singletons
+singletons = set([word_to_id[k] for k, v in dico_words_train.items() if v == 1])
+
+n_epochs = 100  # number of epochs over the training set
+freq_eval = 1000  # evaluate on dev every feq_eval steps
+best_dev = -np.inf
+best_test = -np.inf
+count = 0
+for epoch in xrange(n_epochs):
+    epoch_costs = []
+    print "Staring epoch %i...." % epoch
+    for i, index in enumerate(np.random.permutation(len(train_data))):
+        count += 1
+        input = create_input(train_data[index], parameters, True, singletons)
+        new_cost = f_train(*input)
+        epoch_costs.append(new_cost)
+        if i % 50 == 0 and i > 0 == 0:
+            print "%i, cost average: %f" % (i, np.mean(epoch_costs[-50:]))
+        if count % freq_eval == 0:
+            dev_score = evaluate(parameters, f_eval, dev_sentences, dev_data, id_to_tag, dico_tags)
+            test_score = evaluate(parameters, f_eval, test_sentences, test_data, id_to_tag, dico_tags)
+
+            print "Score on dev: %.5f" % dev_score
+            print "Score on test: %.5f" % test_score
+            if dev_score > best_dev:
+                best_dev = dev_score
+                print "New best score on dev."
+                print "Saving model to disk..."
+                model.save()
+            if test_score > best_test:
+                best_test = test_score
+                print "New best score on test."
+    print "Epoch %i done. Average cost: %f" % (epoch, np.mean(epoch_costs))
+
+# python ./train.py --train ./dataset/eng.train --dev ./dataset/eng.testa --test ./dataset/eng.testb
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

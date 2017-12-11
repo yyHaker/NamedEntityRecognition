@@ -65,7 +65,7 @@ def word_mapping(sentences, lower):
     """
     Create a dictionary and a mapping of words, sorted by frequency.
     :param sentences: a list of list of sentences, [[sentence0], [sentence1], ....]
-    :param lower:
+    :param lower: bool
     :return:
            'dico':{word: freq, .....}
            ‘word_to_id':
@@ -181,8 +181,8 @@ def augment_with_pretrained(dictionary, ext_emb_path, words):
     If `words` is None, we add every word that has a pretrained embedding
     to the dictionary, otherwise, we only add the words that are given by
     `words` (typically the words in the development and test sets.)
-    :param dictionary: ?
-    :param ext_emb_path:
+    :param dictionary: 'dico':{word: freq, .....}
+    :param ext_emb_path: embeddings path
     :param words:
     :return:
     """

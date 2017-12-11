@@ -23,7 +23,7 @@ The input file should contain one sentence by line, and they have to be tokenize
 
 To train your own model, you need to use the train.py script and provide the location of the training, development and testing set:
 
-```
+``` 
 ./train.py --train train.txt --dev dev.txt --test test.txt
 ```
 
