@@ -1,0 +1,21 @@
+1.需安装perl的环境，测试。
+2下载conlleval.pl拷贝到某个文件夹的下面。
+2.conlleval.pl提供的有标准模板output.txt,必须严格按照此格式转换CRF的测试结果文件。
+3.列和列之间必须为空格（ASCII为20H），只能有一个空格；行之间为换行符\n（ASCII为0AH),
+不是回车换行符\r\n（ASCII为0D0AH);可以借助于ultraEdit来进行替换。
+4 .运行命令 perl conlleval.pl <output.txt >result.txt。
+
+[附]UltraEdit中特殊字符摘要
+
+^^ 搜索字符“^”
+^s 宏执行时搜索选定 (加亮) 的文本
+^c 宏执行时搜索剪贴板的内容
+^b 匹配一个分页符
+^p 匹配一个换行符 (CR/LF) (段落) (DOS 文件)
+^r 匹配一个换行符 (仅 CR) (段落) (MAC 文件)
+
+^n 匹配一个换行符 (仅 LF) (段落) (UNIX 文件)
+^t 匹配一个制表符
+
+
+perl conlleval.pl <pred.test >score.test

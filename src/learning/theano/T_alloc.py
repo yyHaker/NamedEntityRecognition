@@ -3,9 +3,10 @@
      theano.tensor.alloc(value,*shape):生成一个变化的tensor，维度是shape大小的，
 但是值但是由value填充。
 """
-import theano.tensor as T
 import numpy as np
 import theano
+import theano.tensor as T
+
 
 X = T.matrix()
 e = T.alloc(1, 4, 3)

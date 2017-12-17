@@ -5,6 +5,7 @@ build the LSTM + CRF models
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
+from src.NER_tagger.utils import *
 
 START_TAG = '<START>'
 STOP_TAG = '<STOP>'
@@ -173,6 +174,7 @@ class BiLSTM_CRF(nn.Module):
             pad_start_tags = torch.cat([torch.LongTensor([self.tag_to_ix[START_TAG]]), tags])
             pad_stop_tags = torch.cat([tags, torch.LongTensor([self.tag_to_ix[STOP_TAG]])])
         score = torch.sum(self.transitions[pad_stop_tags, pad_start_tags]) + torch.sum(feats[r, tags])
+        return score
 
     def _get_lstm_features(self, sentence, chars2, caps, chars2_length, d):
         """
@@ -231,14 +233,14 @@ class BiLSTM_CRF(nn.Module):
         计算所有路径之和
         :param feats: a 2D tensor, len(sentence) * tagset_size, like as
            tags
-           end
+           end [-----...---]
            o     [- - - ,,,  - ]
            b     [- - - ,,,  - ]
            b-p  [- - - ,,,  - ]
             ...    .....
            L-o   [- - - ,,,  - ]
-           start
-         steps:   1 2 3 ...   n
+           start [----....--]
+    steps: s  1 2 3 ...   n  e
         :return: alpha, the sum of scores of all paths, compute as
            start - - - - - - - - - -
            1     -    -     -      -
@@ -252,7 +254,7 @@ class BiLSTM_CRF(nn.Module):
         init_alphas = torch.FloatTensor(1, self.tagset_size).fill_(-10000.)
         init_alphas[0][self.tag_to_ix[START_TAG]] = 0.
         forward_var = Variable(init_alphas)
-        if self.cuda():
+        if self.use_gpu:
             forward_var = forward_var.cuda()   # 1 x tagset_size
         for feat in feats:
             emit_score = feat.view(-1, 1)  # tagset_size x 1
@@ -265,6 +267,105 @@ class BiLSTM_CRF(nn.Module):
         terminal_var = (forward_var + self.transitions[self.tag_to_ix[STOP_TAG]]).view(1, -1)
         alpha = log_sum_exp(terminal_var)
         return alpha
+
+    def viterbi_decode(self, feats):
+        """
+        get the best path score and path.
+        :param feats: a 2D tensor, len(sentence) * tagset_size, like as
+           tags
+           end [-----...---]
+           o     [- - - ,,,  - ]
+           b     [- - - ,,,  - ]
+           b-p  [- - - ,,,  - ]
+            ...    .....
+           L-o   [- - - ,,,  - ]
+           start [----....--]
+    steps: s  1 2 3 ...   n  e
+        :return:  path_score, 最优路径的分数
+                        best_path, 最优路径
+        """
+        backpointers = []
+
+        init_vvars = torch.FloatTensor(1, self.tagset_size).fill_(-10000.)
+        init_vvars[0][self.tag_to_ix[START_TAG]] = 0.
+        forward_var = Variable(init_vvars)
+        if self.use_gpu:
+            forward_var = forward_var.cuda()
+        for feat in feats:
+            next_tag_var = forward_var.view(1, -1).expand(self.tagset_size, self.tagset_size) + self.transitions
+            _, bptrs_t = torch.max(next_tag_var, 1)
+
+            bptrs_t = bptrs_t.squeeze().data.cpu().numpy()  # a list of index
+            next_tag_var = next_tag_var.data.cpu().numpy()
+            viterbivars_t = next_tag_var[range(len(bptrs_t)), bptrs_t]
+            viterbivars_t = Variable(torch.FloatTensor(viterbivars_t))
+            if self.use_gpu:
+                viterbivars_t = viterbivars_t.cuda()
+            forward_var = viterbivars_t + feat  # 当前一步总得分
+            backpointers.append(bptrs_t)
+
+        terminal_var = forward_var + self.transitions[self.tag_to_ix[STOP_TAG]]  # tagset_size
+        terminal_var.data[self.tag_to_ix[START_TAG]] = -10000.
+        terminal_var.data[self.tag_to_ix[STOP_TAG]] = -10000.  # 不考虑头和结尾
+        best_tag_id = argmax(torch.unsqueeze(terminal_var, 0))
+        path_score = terminal_var[best_tag_id]
+
+        # get the best path
+        best_path = [best_tag_id]
+        for bptrs_t in reversed(backpointers):
+            best_tag_id = bptrs_t[best_tag_id]
+            best_path.append(best_tag_id)
+        start = best_path.pop()
+        assert start == self.tag_to_ix[START_TAG]
+        best_path.reverse()
+        return path_score, best_path
+
+    def neg_log_likelihood(self, sentence, tags, chars2, caps, chars2length, d):
+        """
+         代价函数.
+         get the negative log likelihood.
+        -log(p(Y|X)) = log_sum_exp(score(X, Y_hat)) - score(X, Y)
+        :param sentence: a list of ints
+        :param tags: a list of ints, 给定的一个tags
+        :param chars2:
+        :param caps:
+        :param chars2length:
+        :param d:
+        :return:
+        """
+        feats = self._get_lstm_features(sentence, chars2, caps, chars2length, d)
+        if self.use_crf:
+            forward_score = self._forward_alg(feats)
+            gold_score = self._score_sentence(feats, tags)
+            return forward_score - gold_score
+        else:
+            tags = Variable(tags)
+            scores = nn.CrossEntropyLoss(feats, tags)
+            return scores
+
+    def forward(self, sentence, chars2, caps, chars2length, d):
+        """
+
+        :param sentence:
+        :param chars2:
+        :param caps:
+        :param chars2length:
+        :param d:
+        :return:
+        """
+        feats = self._get_lstm_features(sentence, chars2, caps, chars2length, d)
+        # viterbi to get tag_seq
+        if self.use_crf:
+            score, tag_seq = self.viterbi_decode(feats)
+        else:
+            score, tag_seq = torch.max(feats, 1)
+            tag_seq = list(tag_seq.cpu().data)
+        return score, tag_seq
+
+
+
+
+
 
 
 
