@@ -8,7 +8,6 @@ import torch
 import time
 import pickle
 from torch.autograd import Variable
-import matplotlib.pyplot as plt
 import sys
 import visdom
 from src.NER_tagger.utils import *
