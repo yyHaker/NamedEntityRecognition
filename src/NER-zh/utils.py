@@ -6,6 +6,7 @@ import numpy as np
 import collections
 import config
 import os
+import codecs
 
 src_file = config.FLAGS.src_file
 tgt_file = config.FLAGS.tgt_file
@@ -35,13 +36,13 @@ def build_word_index():
     '''
     print('building word index...')
     if not os.path.exists(src_vocab_file):
-        with open(src_vocab_file, 'w') as source:
-            f = open(word_embedding_file)
+        with codecs.open(src_vocab_file, 'w', encoding='utf-8') as source:
+            f = codecs.open(word_embedding_file, 'r', encoding='utf-8')
             for line in f:
                 values = line.split()
                 word = values[0]  # 取词
-                if type(word) is unicode:
-                    word = word.encode('utf8')
+                # if type(word) is 'unicode':
+                # word = word.encode('utf-8')
                 source.write(word + '\n')
         f.close()
     else:
@@ -74,11 +75,12 @@ def get_src_vocab_size():
     :return: 训练数据中共有多少不重复的词。
     '''
     size = 0
-    with open(src_vocab_file, 'r') as vocab_file:
+    with open(src_vocab_file, 'r', encoding='utf-8') as vocab_file:
         for content in vocab_file.readlines():
             content = content.strip()
             if content != '':
                 size += 1
+    print("the vocab size is: ", size)
     return size
 
 
@@ -95,7 +97,6 @@ def get_class_size():
                 size += 1
     # 最后一个是padding
     return size + 1
-
 
 
 def create_vocab_tables(src_vocab_file, tgt_vocab_file, src_unknown_id, tgt_unknown_id, share_vocab=False):
@@ -240,13 +241,15 @@ def load_word2vec_embedding(vocab_size):
         :return:
     '''
     print('loading word embedding, it will take few minutes...')
-    embeddings = np.random.uniform(-1,1,(vocab_size + 2, embeddings_size))
+    embeddings = np.random.uniform(-1, 1, (vocab_size + 2, embeddings_size))
     # 保证每次随机出来的数一样。
     rng = np.random.RandomState(23455)
     unknown = np.asarray(rng.normal(size=(embeddings_size)))
     padding = np.asarray(rng.normal(size=(embeddings_size)))
-    f = open(word_embedding_file)
+    f = open(word_embedding_file, 'r', encoding='utf-8')
     for index, line in enumerate(f):
+        if index == 0:
+            continue
         values = line.split()
         try:
             coefs = np.asarray(values[1:], dtype='float32')  # 取向量
@@ -271,7 +274,7 @@ def tag_to_id_table():
 
 
 def file_content_iterator(file_name):
-    with open(file_name, 'r') as f:
+    with open(file_name, 'r', encoding='utf-8') as f:
         for line in f.readlines():
             yield line.strip()
 
@@ -279,9 +282,16 @@ def file_content_iterator(file_name):
 def write_result_to_file(iterator, tags):
     raw_content = next(iterator)
     words = raw_content.split()
+    print("len(words)", len(words), " |len(tags)", len(tags))
+    print("-------------words below-------------")
+    for word in words:
+        print(word)
+    print("---------------tags below--------------")
+    for tag in tags:
+        print(tag)
     assert len(words) == len(tags)
-    for w,t in zip(words, tags):
-        print (w, '(' + t + ')',)
+    for w, t in zip(words, tags):
+        print(w, ' ( ', t, ' ) ')
     print()
     print('*' * 100)
 

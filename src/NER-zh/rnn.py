@@ -8,7 +8,7 @@ unit_num = embeddings_size         # 默认词向量的大小等于RNN(每个tim
 time_step = max_sequence      # 每个句子的最大长度和time_step一样, 为了避免混淆model中全部用time_step表示。
 DROPOUT_RATE = config.FLAGS.dropout
 EPOCH = config.FLAGS.epoch
-TAGS_NUM = get_class_size()
+TAGS_NUM = get_class_size()  # 命名实体识别类别总数
 
 
 class NER_net:
@@ -45,10 +45,11 @@ class NER_net:
             cell_forward = DropoutWrapper(cell_forward, input_keep_prob=1.0, output_keep_prob=DROPOUT_RATE)
             cell_backward = DropoutWrapper(cell_backward, input_keep_prob=1.0, output_keep_prob=DROPOUT_RATE)
 
-        # time_major 可以适应输入维度。
+        # time_major 可以适应输入维度。(default false)
         outputs, bi_state = \
             tf.nn.bidirectional_dynamic_rnn(cell_forward, cell_backward, self.x, dtype=tf.float32)
-
+        # output_fw `[batch_size, max_time, cell_fw.output_size]`
+        # output_bw `[batch_size, max_time, cell_bw.output_size]`.
         forward_out, backward_out = outputs
         outputs = tf.concat([forward_out, backward_out], axis=2)
 
@@ -60,7 +61,6 @@ class NER_net:
 
         # -1 to time step
         self.outputs = tf.reshape(projection, [self.batch_size, -1, TAGS_NUM])
-
         self.seq_length = tf.convert_to_tensor(self.batch_size * [max_sequence_in_batch], dtype=tf.int32)
         self.log_likelihood, self.transition_params = tf.contrib.crf.crf_log_likelihood(
             self.outputs, self.y, self.seq_length)
@@ -80,7 +80,8 @@ def train(net, iterator, sess):
 
     current_epoch = sess.run(net.global_step)
     while True:
-        if current_epoch > EPOCH: break
+        if current_epoch > EPOCH:
+            break
         try:
             tf_unary_scores, tf_transition_params, _, losses = sess.run(
                 [net.outputs, net.transition_params, net.train_op, net.loss])
@@ -130,7 +131,7 @@ def predict(net, tag_table, sess):
 
         # 把batch那个维度去掉
         tf_unary_scores = np.squeeze(tf_unary_scores)
-
+        print("tf_unary_score_shape", tf_unary_scores.shape)   # sequence_length x tag_size, tag_size contains '<tag-unknown>'
         viterbi_sequence, _ = tf.contrib.crf.viterbi_decode(
             tf_unary_scores, tf_transition_params)
         tags = []
@@ -140,7 +141,6 @@ def predict(net, tag_table, sess):
 
 
 if __name__ == '__main__':
-
     action = config.FLAGS.action
     # 获取词的总数。
     vocab_size = get_src_vocab_size()
