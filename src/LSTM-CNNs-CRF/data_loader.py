@@ -40,10 +40,10 @@ class DataLoader(object):
 
                 temp_char = [const.PAD] * char_max_len
                 temp_insts = np.array([inst + [temp_char] * (word_max_len - len(inst)) for inst in insts])
-                inst_data = np.array([[word + [const.PAD] * (char_max_len-len(word)) for word in inst] for inst in temp_insts])
+                inst_data = np.array([[word + [const.PAD] * (char_max_len-len(word)) for word in inst] for inst in temp_insts]).astype(dtype='int64')
             else:
                 max_len = max(len(inst) for inst in insts)
-                inst_data = np.array([inst + [const.PAD] * (max_len - len(inst)) for inst in insts])
+                inst_data = np.array([inst + [const.PAD] * (max_len - len(inst)) for inst in insts]).astype(dtype='int64')
 
             inst_data_tensor = Variable(torch.from_numpy(inst_data), volatile=self.evaluation)
             if self.cuda:

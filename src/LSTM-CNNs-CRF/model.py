@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -6,52 +7,86 @@ from torch.nn import init
 
 from const import *
 
+
 def log_sum_exp(input, keepdim=False):
     assert input.dim() == 2
     max_scores, _ = input.max(dim=-1, keepdim=True)
     output = input - max_scores.expand_as(input)
     return max_scores + torch.log(torch.sum(torch.exp(output), dim=-1, keepdim=keepdim))
 
+
 def gather_index(input, index):
+    """
+    按照index来收集input中的值
+    :param input: 2个维度
+    :param index: 1个维度
+    :return:
+    """
     assert input.dim() == 2 and index.dim() == 1
     index = index.unsqueeze(1).expand_as(input)
     output = torch.gather(input, 1, index)
     return output[:, 0]
 
+
 class CRF(nn.Module):
     def __init__(self, label_size, is_cuda):
+        """
+
+        :param label_size: label size
+        :param is_cuda: use cuda or not
+        """
         super().__init__()
         self.label_size = label_size
+        # transition[i][j]表示从标签 j -> i的转换分数
         self.transitions = nn.Parameter(
             torch.randn(label_size, label_size))
         self._init_weight()
         self.torch = torch.cuda if is_cuda else torch
 
     def _init_weight(self):
+        """初始化transitions矩阵"""
         init.xavier_uniform(self.transitions)
+        # 任何标签不可能->START, STOP不能->任何标签
         self.transitions.data[START, :].fill_(-10000.)
         self.transitions.data[:, STOP].fill_(-10000.)
 
     def _score_sentence(self, input, tags):
+        """
+        批量的求得每个句子的分数.
+        :param input: 每个句子的每个词被标记为相应tag的分数， (batch, seq, label_size)
+        :param tags: 该句子对应的真实标签， (batch, seq_labels), 不包括START和STOP
+        :return:
+              每个seq的分数， (batch_size)
+        """
         bsz, sent_len, l_size = input.size()
-        score = Variable(self.torch.FloatTensor(bsz).fill_(0.))
-        s_score = Variable(self.torch.LongTensor([[START]]*bsz))
+        score = Variable(self.torch.FloatTensor(bsz).fill_(0.))  # batch_size, 统计每个seq的分数
 
-        tags = torch.cat([s_score, tags], dim=-1)
-        input_t = input.transpose(0, 1)
+        s_score = Variable(self.torch.LongTensor([[START]]*bsz))  # batch_size x 1
 
+        tags = torch.cat([s_score, tags], dim=-1)  # 在列上连接 batch_size x (1 + tag_size)
+        input_t = input.transpose(0, 1)  # (sent_length, batch_size, label_size)
+        # 对seq中的每个标签依次计算分数
+        # tags[:, i] 表示第i个位置的标签索引(START默认索引为1)
         for i, words in enumerate(input_t):
-            temp = self.transitions.index_select(1, tags[:, i])
-            bsz_t = gather_index(temp.transpose(0, 1), tags[:, i + 1])
-            w_step_score = gather_index(words, tags[:, i+1])
+            temp = self.transitions.index_select(1, tags[:, i])  # 挑选这么多列, tag_size x batch_size
+            # 计算i -> i+1 的分数
+            bsz_t = gather_index(temp.transpose(0, 1), tags[:, i + 1])  # (batch_size x tag_size), (batch_size,)
+            # 计算在i+1标签分数
+            w_step_score = gather_index(words, tags[:, i+1])  # words(batch_size, label_size)
             score = score + bsz_t + w_step_score
 
-        temp = self.transitions.index_select(1, tags[:, -1])
+        temp = self.transitions.index_select(1, tags[:, -1])   # STOP的前一个位置
+        # 计算转移到STOP标签的分数
         bsz_t = gather_index(temp.transpose(0, 1),
                     Variable(self.torch.LongTensor([STOP]*bsz)))
         return score+bsz_t
 
     def forward(self, input):
+        """
+        计算所有路径的分数(公式中的分母)
+        :param input: 每个句子的每个词被标记为相应tag的分数， (batch, seq, label_size)
+        :return:
+        """
         bsz, sent_len, l_size = input.size()
         init_alphas = self.torch.FloatTensor(bsz, self.label_size).fill_(-10000.)
         init_alphas[:, START].fill_(0.)
@@ -107,39 +142,73 @@ class CRF(nn.Module):
 
         return torch.cat(best_path, dim=-1)
 
+
 class BiLSTM(nn.Module):
     def __init__(self, word_size, word_ebd_dim, kernel_num, lstm_hsz, lstm_layers, dropout, batch_size):
+        """
+
+        :param word_size: 词集大小
+        :param word_ebd_dim: 词向量维度
+        :param kernel_num: (字符向量维度)
+        :param lstm_hsz: lstm hidden size
+        :param lstm_layers: lstm layers
+        :param dropout: dropout rate
+        :param batch_size: batch size
+        """
         super().__init__()
         self.lstm_layers = lstm_layers
         self.lstm_hsz = lstm_hsz
         self.batch_size = batch_size
 
         self.word_ebd = nn.Embedding(word_size, word_ebd_dim)
-        self.lstm = nn.LSTM(word_ebd_dim+kernel_num,
+        self.lstm = nn.LSTM(input_size=word_ebd_dim+kernel_num,
                             hidden_size=lstm_hsz // 2,
                             num_layers=lstm_layers,
-                            batch_first=True,
-                            dropout=dropout,
+                            batch_first=True,  # input and output tensors are provided as (batch, seq, feature)
+                            dropout=dropout,   # rnn 层与层之间使用dropout
                             bidirectional=True)
         self._init_weights()
 
     def _init_weights(self, scope=1.):
+        """使用均匀分布初始化 词向量"""
         self.word_ebd.weight.data.uniform_(-scope, scope)
 
     def forward(self, words, char_feats, hidden=None):
-        encode = self.word_ebd(words)
-        encode = torch.cat((char_feats, encode), dim=-1)
+        """
+
+        :param words: (batch, seq)
+        :param char_feats: (batch, seq)
+        :param hidden:
+        :return:
+                'output':  (seq, batch, hidden_size)
+                'hidden': (h_n, c_n)
+        """
+        encode = self.word_ebd(words)   # (batch, seq, feature)
+        encode = torch.cat((char_feats, encode), dim=-1)  # 在列上连接, (batch, seq, feature)
         output, hidden = self.lstm(encode, hidden)
         return output, hidden
 
     def init_hidden(self):
+        """
+        初始化LSTM的hidden
+        :return:
+        """
         weight = next(self.parameters()).data
+        # new（）怎么理解？
         return (Variable(weight.new(self.lstm_layers*2, self.batch_size, self.lstm_hsz//2).zero_()),
             Variable(weight.new(self.lstm_layers*2, self.batch_size, self.lstm_hsz//2).zero_()))
 
+
 class CNN(nn.Module):
-    def __init__(self, char_size, char_ebd_dim,
-        kernel_num, filter_size, dropout):
+    def __init__(self, char_size, char_ebd_dim, kernel_num, filter_size, dropout):
+        """
+
+        :param char_size: 字符集大小
+        :param char_ebd_dim: 字符向量维度
+        :param kernel_num: CNN 输出channels
+        :param filter_size: CNN kernel_size的1维大小
+        :param dropout: float, dropout rate
+        """
         super().__init__()
 
         self.char_size = char_size
@@ -155,17 +224,28 @@ class CNN(nn.Module):
         self._init_weight()
 
     def _init_weight(self, scope=1.):
+        """
+        使用均匀分布初始化char_ebd
+        :param scope:
+        :return:
+        """
         init.xavier_uniform(self.char_ebd.weight)
 
     def forward(self, input):
+        """
+        extract character-level representation of a given word.
+        :param input: (batch_size, word_len, char_len)
+        :return:
+        """
         bsz, word_len, char_len = input.size()
         encode = input.view(-1, char_len)
+        # (batch_size x word_len , char_len, char_ebd_dim)  -> (batch_size x word_len , 1,  char_len, char_ebd_dim)
         encode = self.char_ebd(encode).unsqueeze(1)
-        encode = F.relu(self.char_cnn(encode))
-        encode = F.max_pool2d(encode,
-                    kernel_size=(encode.size(2), 1))
-        encode = F.dropout(encode.squeeze(), p=self.dropout)
+        encode = F.relu(self.char_cnn(encode))   # (batch_size x word_len, out_channels, ?, char_ebd_dim)
+        encode = F.max_pool2d(encode, kernel_size=(encode.size(2), 1))  # (batch_size x word_len, out_channels, 1, char_ebd_dim)
+        encode = F.dropout(encode.squeeze(), p=self.dropout)  # (batch_size x word_len, out_channels, char_ebd_dim)
         return encode.view(bsz, word_len, -1)
+
 
 class Model(nn.Module):
     def __init__(self, args):
@@ -184,9 +264,17 @@ class Model(nn.Module):
         self._init_weights()
 
     def forward(self, words, chars, labels, hidden=None):
+        """
+
+        :param words: (batch, seq)
+        :param chars:
+        :param labels: (batch, seq_labels)
+        :param hidden:
+        :return:
+        """
         char_feats = self.cnn(chars)
-        output, _ = self.bilstm(words, char_feats, hidden)
-        output = self.logistic(output)
+        output, _ = self.bilstm(words, char_feats, hidden)  # (seq, batch, hidden_size)
+        output = self.logistic(output)  # (seq, batch, label_size)
         pre_score = self.crf(output)
         label_score = self.crf._score_sentence(output, labels)
         return (pre_score-label_score).mean(), None
@@ -198,6 +286,11 @@ class Model(nn.Module):
         return self.crf.viterbi_decode(out)
 
     def _init_weights(self, scope=1.):
+        """
+        初始化线性层的weight和bias
+        :param scope:
+        :return:
+        """
         self.logistic.weight.data.uniform_(-scope, scope)
         self.logistic.bias.data.fill_(0)
 

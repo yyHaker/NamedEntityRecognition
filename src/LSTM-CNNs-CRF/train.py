@@ -124,6 +124,7 @@ def evaluate():
     _size = validation_data.sents_size * args.word_max_len
     return eval_loss[0]/_size, corrects, corrects / _size * 100, _size
 
+
 def train():
     model.train()
     total_loss = 0
