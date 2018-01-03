@@ -7,11 +7,26 @@ import copy
 
 from const import *
 
+
 def word2idx(sents, word2idx):
+    """
+    map every word in sentence to index, if not found, map to 'UNK'.
+    :param sents: sentences list
+    :param word2idx: dictionary
+    :return:
+    """
     return [[word2idx[w] if w in word2idx else UNK for w in s] for s in sents]
 
+
 def char2idx(sents, char2idx):
+    """
+    map every char in word in sentence to index, if not found, map to 'UNK'.
+    :param sents:
+    :param char2idx:
+    :return:
+    """
     return [[[char2idx[c] if c in char2idx else UNK for c in word] for word in sent] for sent in sents]
+
 
 class Dictionary(object):
     def __init__(self, word2idx={}, idx_num=0):
@@ -32,6 +47,7 @@ class Dictionary(object):
     def __str__(self):
         return "%s(size = %d)".format(self.__class__.__name__, len(self.idx))
 
+
 class Words(Dictionary):
     def __init__(self):
         word2idx = {
@@ -45,6 +61,7 @@ class Words(Dictionary):
         for word in words:
             self._add(word)
 
+
 class Chars(Dictionary):
     def __init__(self):
         word2idx = {
@@ -57,6 +74,7 @@ class Chars(Dictionary):
         chars = set([char for sent in sents for word in sent for char in word])
         for char in chars:
             self._add(char)
+
 
 class Labels(Dictionary):
     def __init__(self):
@@ -72,41 +90,62 @@ class Labels(Dictionary):
         for label in _labels:
             self._add(label)
 
+
 class Corpus(object):
     def __init__(self, path, save_data,
-        word_max_len=32, char_max_len=8, label_tag=3):
+                 word_max_len=32, char_max_len=8, label_tag=3):
+        """
+
+        :param path: the data path
+        :param save_data: the save data pah
+        :param word_max_len: the max length of sentences
+        :param char_max_len: the max length of words in sentences
+        :param label_tag: the label index in the data file
+        """
 
         self.train = os.path.join(path, "train")
         self.valid = os.path.join(path, "testa")
+        self.test = os.path.join(path, 'testb')
+
         self._save_data = save_data
-        self._label_tag = label_tag
+        self._label_tag = label_tag  # 文件中tag的索引(对应什么任务)
         self.coutinue_tag = '-DOCSTART-'
 
         self.w = Words()
         self.c = Chars()
         self.l = Labels()
+
         self.word_max_len = word_max_len
         self.char_max_len = char_max_len
 
-    def parse_data(self, _file, is_train=True):
+    def parse_data(self, _file, is_train=True, is_test=False):
+        """
+        从指定的path读取文件数据，转换成需要的格式
+        :param _file: the data file
+        :param is_train: is the train data or not
+        :return:
+        """
         sents, labels = [], []
         _words, _labels = [], []
         for sentence in open(_file):
             if sentence == '\n':
-                if len(_words) == 0: continue
+                if len(_words) == 0:
+                    continue
                 sents.append(_words.copy())
                 labels.append(_labels.copy())
                 _words, _labels = [], []
                 continue
-            temp = sentence.strip().split(' ')
 
+            temp = sentence.strip().split(' ')
             label, word = temp[self._label_tag].strip(), temp[0].strip()
-            if word == self.coutinue_tag: continue
+            if word == self.coutinue_tag:
+                continue
 
             _words += [word]
             _labels += [label]
 
-        out_of_range_sents = out_of_range_words = 0
+        out_of_range_sents = out_of_range_words = 0  # ?
+        # sents : a list of list of words
         dc_sents = copy.deepcopy(sents)
 
         for index, words in enumerate(sents):
@@ -114,22 +153,26 @@ class Corpus(object):
                 out_of_range_sents += 1
                 sents[index] = words[:self.word_max_len]
                 labels[index] = labels[index][:self.word_max_len]
-                dc_sents[index] = words[:self.word_max_len]
+                dc_sents[index] = words[:self.word_max_len]  # 截取？
 
             for w_index, word in enumerate(dc_sents[index]):
                 if len(word) > self.char_max_len:
                     out_of_range_words += 1
-                    dc_sents[index][w_index] = word[:self.char_max_len]
-
+                    dc_sents[index][w_index] = word[:self.char_max_len]  # 截取？
+            # a list of list of char
             dc_sents[index] = [[char for char in word] for word in dc_sents[index]]
 
-        if is_train:
+        if is_train:   # 在训练数据的语料上建立相关词典
             self.w(sents)
             self.c(dc_sents)
             self.l(labels)
             self.train_sents = sents
             self.train_chars = dc_sents
             self.train_labels = labels
+        elif is_test:
+            self.test_sents = sents
+            self.test_chars = dc_sents
+            self.test_labels = labels
         else:
             self.valid_sents = sents
             self.valid_chars = dc_sents
@@ -139,8 +182,9 @@ class Corpus(object):
             out_of_range_sents, out_of_range_words))
 
     def save(self):
-        self.parse_data(self.train)
-        self.parse_data(self.valid, False)
+        self.parse_data(self.train, is_train=True)
+        self.parse_data(self.valid, is_train=False, is_test=False)
+        self.parse_data(self.test, is_train=False, is_test=True)
         data = {
             'word_max_len': self.word_max_len,
             'char_max_len': self.char_max_len,
@@ -161,6 +205,11 @@ class Corpus(object):
                 'word': word2idx(self.valid_sents, self.w.word2idx),
                 'char': char2idx(self.valid_chars, self.c.word2idx),
                 'label': word2idx(self.valid_labels, self.l.word2idx)
+            },
+            'test': {
+                'word': word2idx(self.test_sents, self.w.word2idx),
+                'char': char2idx(self.test_chars, self.c.word2idx),
+                'label': word2idx(self.test_labels, self.l.word2idx)
             }
         }
 

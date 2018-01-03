@@ -9,15 +9,22 @@ from const import *
 
 
 def log_sum_exp(input, keepdim=False):
+    """
+    对input中的每一行计算log_sum_exp
+    :param input:
+    :param keepdim:
+    :return:
+    """
     assert input.dim() == 2
-    max_scores, _ = input.max(dim=-1, keepdim=True)
+    max_scores, _ = input.max(dim=-1, keepdim=True)  # 每一行的最大值
     output = input - max_scores.expand_as(input)
     return max_scores + torch.log(torch.sum(torch.exp(output), dim=-1, keepdim=keepdim))
 
 
 def gather_index(input, index):
     """
-    按照index来收集input中的值
+    按照index来收集input中的值.
+    (封装了在batch_size x tag_size 中找寻batch_size个tag所以对应的分数)
     :param input: 2个维度
     :param index: 1个维度
     :return:
@@ -36,7 +43,7 @@ class CRF(nn.Module):
         :param is_cuda: use cuda or not
         """
         super().__init__()
-        self.label_size = label_size
+        self.label_size = label_size  # 是否包含START和STOP标签？
         # transition[i][j]表示从标签 j -> i的转换分数
         self.transitions = nn.Parameter(
             torch.randn(label_size, label_size))
@@ -53,17 +60,18 @@ class CRF(nn.Module):
     def _score_sentence(self, input, tags):
         """
         批量的求得每个句子的分数.
-        :param input: 每个句子的每个词被标记为相应tag的分数， (batch, seq, label_size)
+        :param input: 每个句子的每个词被标记为相应tag的分数， (batch, seq, label_size),
+           不包括START和STOP
         :param tags: 该句子对应的真实标签， (batch, seq_labels), 不包括START和STOP
         :return:
-              每个seq的分数， (batch_size)
+              每个seq的分数，shape(batch_size)
         """
         bsz, sent_len, l_size = input.size()
         score = Variable(self.torch.FloatTensor(bsz).fill_(0.))  # batch_size, 统计每个seq的分数
 
         s_score = Variable(self.torch.LongTensor([[START]]*bsz))  # batch_size x 1
 
-        tags = torch.cat([s_score, tags], dim=-1)  # 在列上连接 batch_size x (1 + tag_size)
+        tags = torch.cat([s_score, tags], dim=-1)  # 在列上连接 batch_size x (1 + tag_size)，tags索引表
         input_t = input.transpose(0, 1)  # (sent_length, batch_size, label_size)
         # 对seq中的每个标签依次计算分数
         # tags[:, i] 表示第i个位置的标签索引(START默认索引为1)
@@ -88,25 +96,33 @@ class CRF(nn.Module):
         :return:
         """
         bsz, sent_len, l_size = input.size()
+        # init_alphas:
         init_alphas = self.torch.FloatTensor(bsz, self.label_size).fill_(-10000.)
         init_alphas[:, START].fill_(0.)
+        # forward_var，shape(bsz, label_size)，
         forward_var = Variable(init_alphas)
 
-        input_t = input.transpose(0, 1)
+        input_t = input.transpose(0, 1)  # (seq, batch, label_size)
         for words in input_t:
-            alphas_t = []
+            alphas_t = []  # 到第t步的分数(发射分数和转移分数) , (batch, label_size)
             for next_tag in range(self.label_size):
-                emit_score = words[:, next_tag].contiguous()
-                emit_score = emit_score.unsqueeze(1).expand_as(words)
-
+                emit_score = words[:, next_tag].contiguous()  # (batch, )
+                emit_score = emit_score.unsqueeze(1).expand_as(words)  # (batch, 1) -> (batch, label_size)
+                # 转移分数 (1, label_size) -> (batch, label_size)
                 trans_score = self.transitions[next_tag, :].view(1, -1).expand_as(words)
-                next_tag_var = forward_var + trans_score + emit_score
-                alphas_t.append(log_sum_exp(next_tag_var, True))
-            forward_var = torch.cat(alphas_t, dim=-1)
+                # 到next_tag的发射分数和转移分数(按batch计算)
+                next_tag_var = forward_var + trans_score + emit_score   # (batch, label_size)
+                alphas_t.append(log_sum_exp(next_tag_var, True))   # (batch, 1)
+            forward_var = torch.cat(alphas_t, dim=-1)  # 在列上连接
 
         return log_sum_exp(forward_var)
 
     def viterbi_decode(self, input):
+        """
+        找到最好的标注序列
+        :param input: (batch, seq, label_size)
+        :return:
+        """
         backpointers = []
         bsz, sent_len, l_size = input.size()
 
@@ -114,7 +130,7 @@ class CRF(nn.Module):
         init_vvars[:, START].fill_(0.)
         forward_var = Variable(init_vvars)
 
-        input_t = input.transpose(0, 1)
+        input_t = input.transpose(0, 1)  # (seq, batch, label_size)
         for words in input_t:
             bptrs_t = []
             viterbivars_t = []
@@ -123,6 +139,7 @@ class CRF(nn.Module):
                 _trans = self.transitions[next_tag].view(1, -1).expand_as(words)
                 next_tag_var = forward_var + _trans
                 best_tag_scores, best_tag_ids = torch.max(next_tag_var, 1, keepdim=True)  # bsz
+                # save the best path and scores
                 bptrs_t.append(best_tag_ids)
                 viterbivars_t.append(best_tag_scores)
 
@@ -134,13 +151,13 @@ class CRF(nn.Module):
 
         best_path = [best_tag_ids]
         for bptrs_t in reversed(backpointers):
-            best_tag_ids = gather_index(bptrs_t, best_tag_ids)
-            best_path.append(best_tag_ids.contiguous().view(-1, 1))
+            best_tag_ids = gather_index(bptrs_t, best_tag_ids)  # bsz
+            best_path.append(best_tag_ids.contiguous().view(-1, 1))  # bsz x 1
 
         best_path.pop()
         best_path.reverse()
 
-        return torch.cat(best_path, dim=-1)
+        return torch.cat(best_path, dim=-1)  # 在列上拼接
 
 
 class BiLSTM(nn.Module):
@@ -180,7 +197,7 @@ class BiLSTM(nn.Module):
         :param char_feats: (batch, seq)
         :param hidden:
         :return:
-                'output':  (seq, batch, hidden_size)
+                'output':  (batch, seq, hidden_size)
                 'hidden': (h_n, c_n)
         """
         encode = self.word_ebd(words)   # (batch, seq, feature)
@@ -267,14 +284,14 @@ class Model(nn.Module):
         """
 
         :param words: (batch, seq)
-        :param chars:
+        :param chars: (batch, seq)
         :param labels: (batch, seq_labels)
         :param hidden:
         :return:
         """
         char_feats = self.cnn(chars)
-        output, _ = self.bilstm(words, char_feats, hidden)  # (seq, batch, hidden_size)
-        output = self.logistic(output)  # (seq, batch, label_size)
+        output, _ = self.bilstm(words, char_feats, hidden)  # (batch, seq, hidden_size)
+        output = self.logistic(output)  # (batch, seq,  label_size)
         pre_score = self.crf(output)
         label_score = self.crf._score_sentence(output, labels)
         return (pre_score-label_score).mean(), None
@@ -294,4 +311,7 @@ class Model(nn.Module):
         self.logistic.weight.data.uniform_(-scope, scope)
         self.logistic.bias.data.fill_(0)
 
+# TODO: 1. load pre_trained Embeddings ?
+# TODO: 2. how to test the model and calculate the F1 score ?
+# TODO: 3. batch training can speed up or even improve the results ?
 

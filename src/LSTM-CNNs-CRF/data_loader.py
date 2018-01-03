@@ -7,6 +7,18 @@ import const
 class DataLoader(object):
     def __init__(self, sents, chars, label, word_max_len, char_max_len, cuda=True,
                 batch_size=64, shuffle=True, evaluation=False):
+        """
+        加载数据的类，实现了iterator, batch_size 和shuffle以及pad等操作
+        :param sents: sentences
+        :param chars: chars
+        :param label: labels
+        :param word_max_len: the max length of words
+        :param char_max_len: the max length of chars
+        :param cuda: is use cuda
+        :param batch_size: the batch size
+        :param shuffle: is shuffle the data
+        :param evaluation: # ???
+        """
         self.cuda = cuda
         self.sents_size = len(sents)
         self._step = 0
@@ -16,6 +28,7 @@ class DataLoader(object):
         self._batch_size = batch_size
         self._word_max_len = word_max_len
         self._char_max_len = char_max_len
+
         self._sents = np.asarray(sents)
         self._chars = np.asarray(chars)
         self._label = np.asarray(label)
@@ -35,6 +48,7 @@ class DataLoader(object):
 
     def __next__(self):
         def pad_to_longest(insts, is_char=False, word_max_len=None, char_max_len=None):
+            """insts: sentences or chars or labels"""
             if is_char:
                 assert char_max_len is not None and word_max_len is not None
 
@@ -60,8 +74,7 @@ class DataLoader(object):
         self._step += 1
 
         word = pad_to_longest(self._sents[_start:_start+_bsz])
-        char = pad_to_longest(self._chars[_start:_start+_bsz],
-                              True, word.size(1), self._char_max_len)
+        char = pad_to_longest(self._chars[_start:_start+_bsz], True, word.size(1), self._char_max_len)
         label = pad_to_longest(self._label[_start:_start+_bsz])
 
         return word, char, label

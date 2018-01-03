@@ -1,5 +1,9 @@
 import argparse
 
+import torch
+from torch.autograd import Variable
+from utils import *
+
 parser = argparse.ArgumentParser(description='LSTM CNN CRF')
 parser.add_argument('--epochs', type=int, default=32,
                     help='number of epochs for train')
@@ -42,8 +46,6 @@ parser.add_argument('--clip', type=float, default=.5,
 
 args = parser.parse_args()
 
-import torch
-from torch.autograd import Variable
 
 torch.manual_seed(args.seed)
 args.use_cuda = use_cuda = torch.cuda.is_available() and args.cuda_able
@@ -80,6 +82,18 @@ validation_data = DataLoader(
               cuda=use_cuda,
               evaluation=True)
 
+test_data = DataLoader(
+    data['test']['word'],
+    data['test']['char'],
+    data['test']['label'],
+    word_max_len=args.word_max_len,
+    char_max_len=args.char_max_len,
+    cuda=use_cuda,
+    batch_size=args.batch_size,
+    shuffle=False,
+    evaluation=True
+)
+
 # ##############################################################################
 # Build model
 # ##############################################################################
@@ -90,7 +104,7 @@ model = Model(args)
 if use_cuda:
    model = model.cuda()
 
-criterion = torch.nn.CrossEntropyLoss()
+# criterion = torch.nn.CrossEntropyLoss()
 optimizer = ScheduledOptim(
             torch.optim.Adam(model.parameters(), lr=args.lr,
                 betas=(0.9, 0.98), eps=1e-09, weight_decay=args.l2),
@@ -105,19 +119,23 @@ import const
 
 train_loss = []
 valid_loss = []
-accuracy = []
+val_accuracy = []
+test_loss = []
+test_accuracy = []
+
 
 def evaluate():
+    # set the module to evaluation mode
     model.eval()
     corrects = eval_loss = 0
 
     for word, char, label in tqdm(validation_data, mininterval=0.2,
                 desc='Evaluate Processing', leave=False):
-        loss, _ = model(word, char, label)
+        loss, _ = model(word, char, label)  # (pre_score-label_score).mean()
         pred = model.predict(word, char)
 
         eval_loss += loss.data[0]
-
+        # every word 被标注正确的个数
         corrects += (pred.data == label.data).sum()
         eval_loss += loss.data
 
@@ -129,10 +147,9 @@ def train():
     model.train()
     total_loss = 0
     for word, char, label in tqdm(training_data, mininterval=1,
-                desc='Train Processing', leave=False):
-
+                desc='Train Processing', leave=True):
         optimizer.zero_grad()
-        loss, _ = model(word, char, label)
+        loss, _ = model(word, char, label)   # loss?
         loss.backward()
 
         optimizer.step()
@@ -140,32 +157,57 @@ def train():
         total_loss += loss.data
     return total_loss[0]/training_data.sents_size/args.word_max_len
 
+
+def test():
+    model.eval()
+    corrects = test_loss = 0
+    for word, char, label in tqdm(test_data, mininterval=0.2, desc='Evaluating Processing',
+                                  leave=True):
+        loss, _ = model(word, char, label)  # (pre_score-label_score).mean()
+        pred = model.predict(word, char)
+
+        corrects += (pred.data == label.data).sum()
+        test_loss += loss.data
+    _size = test_data.sents_size * args.word_max_len
+    return test_loss[0]/_size, corrects, corrects / _size * 100, _size
+
+
 # ##############################################################################
 # Save Model
 # ##############################################################################
-best_acc = None
+best_acc = 0.
 total_start_time = time.time()
 
 try:
     print('-' * 90)
     for epoch in range(1, args.epochs+1):
-        epoch_start_time = time.time()
+        epoch_start_time = time.time()  # epoch start time
+
         loss = train()
         train_loss.append(loss*1000.)
 
-        print('| start of epoch {:3d} | time: {:2.2f}s | loss {:5.6f}'.format(epoch, time.time() - epoch_start_time, loss))
+        print('....... done of train epoch {:3d} |cost time: {:2.2f}s | current loss {:5.6f}'.format(epoch, time.time() - epoch_start_time, loss))
+
+        # every epoch done , validation the model
+        validation_start_time = time.time()  # validation start time
 
         loss, corrects, acc, size = evaluate()
-
         valid_loss.append(loss*1000.)
-        accuracy.append(acc / 100.)
+        val_accuracy.append(acc / 100.)
 
-        epoch_start_time = time.time()
-        print('-' * 90)
-        print('| end of epoch {:3d} | time: {:2.2f}s | loss {:.4f} | accuracy {:.4f}%({}/{})'.format(epoch, time.time() - epoch_start_time, loss, acc, corrects, size))
-        print('-' * 90)
-        if not best_acc or best_acc < corrects:
+        print('validation done,  end of epoch {:3d} |cost time: {:2.2f}s | validation loss {:.4f} | '
+              'val_accuracy {:.4f}%({}/{})'.format(epoch, time.time()-validation_start_time, loss, acc, corrects, size))
+
+        if not best_acc or corrects > best_acc:
             best_acc = corrects
+            # test the model and save the model
+            test_start_time = time.time()
+            loss, corrects, acc, size = test()
+            test_loss.append(loss*1000.)
+            test_accuracy.append(acc / 100.)
+            print("use current best model to test done, at epoch{:3d} | cost time {:2.2f}s | test loss {:.4f} |"
+                  "test_accuracy {:.4f}%({}{})".format(epoch, time.time() - test_start_time, loss, acc, corrects, size))
+            # save model parameters
             model_state_dict = model.state_dict()
             model_source = {
                 "settings": args,
@@ -174,6 +216,17 @@ try:
                 "label_dict": data['dict']['label']
             }
             torch.save(model_source, args.save)
+    print("-"*90)
+    # after training save the loss, accuracy for plotting
+    print("after training , save the loss, accuracy for plotting.....")
+    result_dict = {
+        'train_loss': train_loss,
+        'valid_loss': valid_loss,
+        'val_accuracy': val_accuracy,
+        'test_loss': test_loss,
+        'test_accuracy': test_accuracy
+    }
+    save_dict_to_file(result_dict, 'result.pkl')
 except KeyboardInterrupt:
     print("-"*90)
     print("Exiting from training early | cost time: {:5.2f}min".format((time.time() - total_start_time)/60.0))
