@@ -14,6 +14,8 @@ Named Entity Recognition
 Project Layout
 --------------
 
+
+
 Subdirectories:
 
 - src - 代码
@@ -36,3 +38,4 @@ Subdirectories:
 - 《Named Entity Recognition for Chinese Social Media with Jointly Trained Embeddings》阅读笔记，https://zhuanlan.zhihu.com/p/24160574?refer=xitucheng10
 - Sequence Tagging with Tensorflow, https://guillaumegenthial.github.io/sequence-tagging-with-tensorflow.html
 - 论文<End-to-end Sequence Labeling via Bi-directional LSTM-CNNs-CRF>使用pytorch的简单实现，https://zhuanlan.zhihu.com/p/30791481
+- 机器学习性能评估指标:http://charleshm.github.io/2016/03/Model-Performance/
