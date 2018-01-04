@@ -1,4 +1,14 @@
 # -*- coding:utf-8 -*-
+"""
+     The model is a birectional LSTM neural network with a CRF layer. Sequence of chinese characters
+are projected into sequence of dense vectors, and concated with extra features as the inputs of
+recurrent layer, here we employ one hot vectors representing word boundary features for illustration.
+The recurrent layer is a bidirectional LSTM layer, outputs of forward and backword vectors are
+concated and projected to score of each tag. A CRF layer is used to overcome label-bias problem.
+
+     Our model is similar to the state-of-the-art Chinese named entity recognition model proposed in
+Character-Based LSTM-CRF with Radical-Level Features for Chinese Named Entity Recognition.
+"""
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.crf import crf_log_likelihood
@@ -12,7 +22,10 @@ from data_utils import create_input, iobes_iob
 
 class Model(object):
     def __init__(self, config):
-
+        """
+        the BiLSTM + CRF model
+        :param config: an ordered dictionary to config the model.
+        """
         self.config = config
         self.lr = config["lr"]
         self.char_dim = config["char_dim"]
@@ -21,32 +34,32 @@ class Model(object):
 
         self.num_tags = config["num_tags"]
         self.num_chars = config["num_chars"]
-        self.num_segs = 4
+        self.num_segs = 4  # ?
 
-        self.global_step = tf.Variable(0, trainable=False)
+        self.global_step = tf.Variable(0, trainable=False)  # used to count training steps
         self.best_dev_f1 = tf.Variable(0.0, trainable=False)
         self.best_test_f1 = tf.Variable(0.0, trainable=False)
+        # initialization for weights
         self.initializer = initializers.xavier_initializer()
 
         # add placeholders for the model
-
         self.char_inputs = tf.placeholder(dtype=tf.int32,
                                           shape=[None, None],
-                                          name="ChatInputs")
+                                          name="ChatInputs")  # batch_size x num_steps(字符个数) ?
         self.seg_inputs = tf.placeholder(dtype=tf.int32,
                                          shape=[None, None],
-                                         name="SegInputs")
-
+                                         name="SegInputs")   # segmentation feature
         self.targets = tf.placeholder(dtype=tf.int32,
                                       shape=[None, None],
-                                      name="Targets")
+                                      name="Targets")        # targets labels?
+
         # dropout keep prob
         self.dropout = tf.placeholder(dtype=tf.float32,
                                       name="Dropout")
 
         used = tf.sign(tf.abs(self.char_inputs))
         length = tf.reduce_sum(used, reduction_indices=1)
-        self.lengths = tf.cast(length, tf.int32)
+        self.lengths = tf.cast(length, tf.int32)   # ?
         self.batch_size = tf.shape(self.char_inputs)[0]
         self.num_steps = tf.shape(self.char_inputs)[-1]
 
