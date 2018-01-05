@@ -10,12 +10,16 @@ def load_sentences(path, lower, zeros):
     """
     Load sentences. A line must contain at least a word and its tag.
     Sentences are separated by empty lines.
+    :param path: the data path
+    :param lower: whether lower case(not use)
+    :param zeros: whether replace digits with zero
+    :return: [num_sents, seq_len, 2]
     """
     sentences = []
     sentence = []
     num = 0
     for line in codecs.open(path, 'r', 'utf8'):
-        num+=1
+        num += 1
         line = zero_digits(line.rstrip()) if zeros else line.rstrip()
         # print(list(line))
         if not line:
@@ -29,9 +33,10 @@ def load_sentences(path, lower, zeros):
                 word = line.split()
                 # word[0] = " "
             else:
-                word= line.split()
+                word = line.split()
             assert len(word) >= 2, print([word[0]])
             sentence.append(word)
+
     if len(sentence) > 0:
         if 'DOCSTART' not in sentence[0][0]:
             sentences.append(sentence)
@@ -100,12 +105,13 @@ def prepare_dataset(sentences, char_to_id, tag_to_id, lower=False, train=True):
 
     def f(x):
         return x.lower() if lower else x
+
     data = []
     for s in sentences:
         string = [w[0] for w in s]
         chars = [char_to_id[f(w) if f(w) in char_to_id else '<UNK>']
                  for w in string]
-        segs = get_seg_features("".join(string))
+        segs = get_seg_features("".join(string))  # seg_features 怎么来的？
         if train:
             tags = [tag_to_id[w[-1]] for w in s]
         else:

@@ -125,9 +125,15 @@ def insert_singletons(words, singletons, p=0.5):
 
 def get_seg_features(string):
     """
-    Segment text with jieba
+    Segment text with jieba.
     features are represented in bies format
     s donates single word
+    :param string: a sentence
+    :return:
+
+    example: 我 喜欢 在 长白山 旅游。
+     the seg_feature is:
+                [0,  1, 3,  0,  1, 2, 3,  1, 3]
     """
     seg_feature = []
 

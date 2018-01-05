@@ -27,13 +27,14 @@ class Model(object):
         :param config: an ordered dictionary to config the model.
         """
         self.config = config
+
         self.lr = config["lr"]
-        self.char_dim = config["char_dim"]
+        self.char_dim = config["char_dim"]  # 字符向量维度
         self.lstm_dim = config["lstm_dim"]
         self.seg_dim = config["seg_dim"]
 
         self.num_tags = config["num_tags"]
-        self.num_chars = config["num_chars"]
+        self.num_chars = config["num_chars"]  # 字符个数
         self.num_segs = 4  # ?
 
         self.global_step = tf.Variable(0, trainable=False)  # used to count training steps
@@ -58,12 +59,13 @@ class Model(object):
                                       name="Dropout")
 
         used = tf.sign(tf.abs(self.char_inputs))
+        # 求每一行的和
         length = tf.reduce_sum(used, reduction_indices=1)
-        self.lengths = tf.cast(length, tf.int32)   # ?
+        self.lengths = tf.cast(length, tf.int32)   # sequence lengths, shape(batch_size, )
         self.batch_size = tf.shape(self.char_inputs)[0]
         self.num_steps = tf.shape(self.char_inputs)[-1]
 
-        # embeddings for chinese character and segmentation representation
+        # embeddings for chinese character and segmentation representation ([1, num_steps, embedding size])
         embedding = self.embedding_layer(self.char_inputs, self.seg_inputs, config)
 
         # apply dropout before feed to lstm layer
@@ -100,12 +102,11 @@ class Model(object):
 
     def embedding_layer(self, char_inputs, seg_inputs, config, name=None):
         """
-        :param char_inputs: one-hot encoding of sentence
+        :param char_inputs: one-hot encoding of sentence, (batch_size, num_steps)
         :param seg_inputs: segmentation feature
-        :param config: wither use segmentation feature
-        :return: [1, num_steps, embedding size], 
+        :param config: whether use segmentation feature
+        :return: [1, num_steps, embedding size],
         """
-
         embedding = []
         with tf.variable_scope("char_embedding" if not name else name), tf.device('/cpu:0'):
             self.char_lookup = tf.get_variable(
@@ -120,13 +121,16 @@ class Model(object):
                         shape=[self.num_segs, self.seg_dim],
                         initializer=self.initializer)
                     embedding.append(tf.nn.embedding_lookup(self.seg_lookup, seg_inputs))
-            embed = tf.concat(embedding, axis=-1)
+            embed = tf.concat(embedding, axis=-1)  # 拼接向量
         return embed
 
     def biLSTM_layer(self, lstm_inputs, lstm_dim, lengths, name=None):
         """
-        :param lstm_inputs: [batch_size, num_steps, emb_size] 
-        :return: [batch_size, num_steps, 2*lstm_dim] 
+        :param lstm_inputs: [batch_size, num_steps, emb_size]
+        :param lstm_dim:
+        :param lengths: [batch_size, sequence_length],
+        :param name:
+        :return: [batch_size, num_steps, 2*lstm_dim]
         """
         with tf.variable_scope("char_BiLSTM" if not name else name):
             lstm_cell = {}
@@ -151,7 +155,7 @@ class Model(object):
         :param lstm_outputs: [batch_size, num_steps, emb_size] 
         :return: [batch_size, num_steps, num_tags]
         """
-        with tf.variable_scope("project"  if not name else name):
+        with tf.variable_scope("project" if not name else name):
             with tf.variable_scope("hidden"):
                 W = tf.get_variable("W", shape=[self.lstm_dim*2, self.lstm_dim],
                                     dtype=tf.float32, initializer=self.initializer)
@@ -176,19 +180,21 @@ class Model(object):
     def loss_layer(self, project_logits, lengths, name=None):
         """
         calculate crf loss
-        :param project_logits: [1, num_steps, num_tags]
+        :param project_logits: [batch_size, num_steps, num_tags]
+        :param lengths: [batch_size, sequence_length]
         :return: scalar loss
         """
-        with tf.variable_scope("crf_loss"  if not name else name):
+        with tf.variable_scope("crf_loss" if not name else name):
             small = -1000.0
             # pad logits for crf loss
-            start_logits = tf.concat(
-                [small * tf.ones(shape=[self.batch_size, 1, self.num_tags]), tf.zeros(shape=[self.batch_size, 1, 1])], axis=-1)
+            start_logits = tf.concat([small * tf.ones(shape=[self.batch_size, 1, self.num_tags]),
+                                      tf.zeros(shape=[self.batch_size, 1, 1])], axis=-1)  # [batch_size,1, (num_tags+1)]
             pad_logits = tf.cast(small * tf.ones([self.batch_size, self.num_steps, 1]), tf.float32)
-            logits = tf.concat([project_logits, pad_logits], axis=-1)
-            logits = tf.concat([start_logits, logits], axis=1)
-            targets = tf.concat(
-                [tf.cast(self.num_tags*tf.ones([self.batch_size, 1]), tf.int32), self.targets], axis=-1)
+            logits = tf.concat([project_logits, pad_logits], axis=-1)  # [batch_size, num_steps. (num_tags + 1)]
+            logits = tf.concat([start_logits, logits], axis=1)  # [batch_size, (num_steps+1). (num_tags + 1)]
+
+            targets = tf.concat([tf.cast(self.num_tags*tf.ones([self.batch_size, 1]), tf.int32),
+                                 self.targets], axis=-1)  # [batch_size, (1 + num_steps)]
 
             self.trans = tf.get_variable(
                 "transitions",
@@ -204,7 +210,7 @@ class Model(object):
     def create_feed_dict(self, is_train, batch):
         """
         :param is_train: Flag, True for train batch
-        :param batch: list train/evaluate data 
+        :param batch: list train/evaluate data
         :return: structured data to feed
         """
         _, chars, segs, tags = batch
@@ -222,7 +228,7 @@ class Model(object):
         """
         :param sess: session to run the batch
         :param is_train: a flag indicate if it is a train batch
-        :param batch: a dict containing batch data
+        :param batch: a dict containing batch data ???
         :return: batch result, loss of the batch or logits
         """
         feed_dict = self.create_feed_dict(is_train, batch)
@@ -240,17 +246,17 @@ class Model(object):
         :param logits: [batch_size, num_steps, num_tags]float32, logits
         :param lengths: [batch_size]int32, real length of each sequence
         :param matrix: transaction matrix for inference
-        :return:
+        :return: [batch_size, real length]
         """
         # inference final labels usa viterbi Algorithm
         paths = []
         small = -1000.0
-        start = np.asarray([[small]*self.num_tags +[0]])
+        start = np.asarray([[small]*self.num_tags +[0]])  # (num_tags + 1)
         for score, length in zip(logits, lengths):
             score = score[:length]
             pad = small * np.ones([length, 1])
-            logits = np.concatenate([score, pad], axis=1)
-            logits = np.concatenate([start, logits], axis=0)
+            logits = np.concatenate([score, pad], axis=1)  # (num_steps, num_tags+1)
+            logits = np.concatenate([start, logits], axis=0)  # (num_steps +1, num_tags + 1)
             path, _ = viterbi_decode(logits, matrix)
 
             paths.append(path[1:])
@@ -264,13 +270,14 @@ class Model(object):
         :return: evaluate result
         """
         results = []
-        trans = self.trans.eval()  # ?
+        trans = self.trans.eval()  # get the value os self.trans
         for batch in data_manager.iter_batch():
-            strings = batch[0]
+            strings = batch[0]  # ???
             tags = batch[-1]
             lengths, scores = self.run_step(sess, False, batch)
             batch_paths = self.decode(scores, lengths, trans)
-            for i in range(len(strings)):
+
+            for i in range(len(strings)):  # iterate every sequence in the batch
                 result = []
                 string = strings[i][:lengths[i]]
                 gold = iobes_iob([id_to_tag[int(x)] for x in tags[i][:lengths[i]]])

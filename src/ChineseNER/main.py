@@ -15,6 +15,8 @@ from utils import get_logger, make_path, clean, create_model, save_model
 from utils import print_config, save_config, load_config, test_ner
 from data_utils import load_word2vec, create_input, input_from_line, BatchManager
 
+# tf.app.flags.DEFINE_xxx()就是添加命令行的optional argument，
+# 而tf.app.flags.FLAGS可以从对应的命令行参数取出参数。
 flags = tf.app.flags
 flags.DEFINE_boolean("clean",       True,      "clean train folder")
 flags.DEFINE_boolean("train",       True,      "Wither train the model")
@@ -80,13 +82,23 @@ def config_model(char_to_id, tag_to_id):
 
 
 def evaluate(sess, model, name, data, id_to_tag, logger):
+    """
+    evaluate the model.
+    :param sess: tf.Session()
+    :param model: model
+    :param name: "dev" or "test"
+    :param data: dev data or test data
+    :param id_to_tag:
+    :param logger:
+    :return:
+    """
     logger.info("evaluate:{}".format(name))
     ner_results = model.evaluate(sess, data, id_to_tag)  # get the result
     eval_lines = test_ner(ner_results, FLAGS.result_path)  # run the conlleval
     for line in eval_lines:
         logger.info(line)
+    # get the F1 value
     f1 = float(eval_lines[1].strip().split()[-1])
-
     if name == "dev":
         best_test_f1 = model.best_dev_f1.eval()
         if f1 > best_test_f1:
@@ -111,8 +123,7 @@ def train():
     update_tag_scheme(train_sentences, FLAGS.tag_schema)
     update_tag_scheme(test_sentences, FLAGS.tag_schema)
 
-    # create maps if not exist
-    print(os.name)
+    # create maps if not exist, load data if exists maps
     if not os.path.isfile(FLAGS.map_file):
         # create dictionary for word
         if FLAGS.pre_emb:
@@ -151,6 +162,7 @@ def train():
     train_manager = BatchManager(train_data, FLAGS.batch_size)
     dev_manager = BatchManager(dev_data, 100)
     test_manager = BatchManager(test_data, 100)
+
     # make path for store log and model if not exist
     make_path(FLAGS)
     if os.path.isfile(FLAGS.config_file):
