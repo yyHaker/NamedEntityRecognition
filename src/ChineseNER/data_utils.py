@@ -292,11 +292,11 @@ class BatchManager(object):
         self.len_data = len(self.batch_data)
 
     def sort_and_pad(self, data, batch_size):
-        num_batch = int(math.ceil(len(data) /batch_size))
+        num_batch = int(math.ceil(len(data) / batch_size))
         sorted_data = sorted(data, key=lambda x: len(x[0]))
         batch_data = list()
         for i in range(num_batch):
-            batch_data.append(self.pad_data(sorted_data[i*batch_size : (i+1)*batch_size]))
+            batch_data.append(self.pad_data(sorted_data[i*batch_size: (i+1)*batch_size]))
         return batch_data
 
     @staticmethod

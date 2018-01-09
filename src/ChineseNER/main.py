@@ -179,7 +179,7 @@ def train():
     # limit GPU memory
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
-    steps_per_epoch = train_manager.len_data   # the length of batch data
+    steps_per_epoch = train_manager.len_data   # the nums of batch data
     with tf.Session(config=tf_config) as sess:
         model = create_model(sess, Model, FLAGS.ckpt_path, load_word2vec, config, id_to_char, logger)
         logger.info("start training")
