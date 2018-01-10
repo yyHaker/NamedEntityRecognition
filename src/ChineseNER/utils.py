@@ -2,6 +2,7 @@ import os
 import json
 import shutil
 import logging
+import pickle
 
 import tensorflow as tf
 from conlleval import return_report
@@ -208,6 +209,27 @@ def result_to_json(string, tags):
             entity_start = idx
         idx += 1
     return item
+
+
+def write_data_to_file(data, path):
+    """
+    :param data: the data obj
+    :param path: the store path
+    :return:
+    """
+    with open(path, 'wb') as f:
+        pickle.dump(data, f)
+
+
+def load_data_from_file(path):
+    """
+    :param path: the store path
+    :return:
+    """
+    data_obj = None
+    with open(path, 'rb') as f:
+        data_obj = pickle.load(f)
+    return data_obj
 
 
 

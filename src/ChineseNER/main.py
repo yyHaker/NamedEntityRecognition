@@ -12,7 +12,7 @@ from loader import load_sentences, update_tag_scheme
 from loader import char_mapping, tag_mapping
 from loader import augment_with_pretrained, prepare_dataset
 from utils import get_logger, make_path, clean, create_model, save_model
-from utils import print_config, save_config, load_config, test_ner
+from utils import print_config, save_config, load_config, test_ner, write_data_to_file
 from data_utils import load_word2vec, create_input, input_from_line, BatchManager
 
 # tf.app.flags.DEFINE_xxx()就是添加命令行的optional argument，
@@ -50,7 +50,7 @@ flags.DEFINE_string("emb_file", default_value="wiki_100.utf8", docstring="Path f
 flags.DEFINE_string("train_file", default_value="data/example.train", docstring="Path for train data")
 flags.DEFINE_string("dev_file", default_value="data/example.dev", docstring="Path for dev data")
 flags.DEFINE_string("test_file", default_value="data/example.test", docstring="Path for test data")
-
+flags.DEFINE_string("logdir", "logdir", "path to save the log....")
 
 FLAGS = tf.app.flags.FLAGS
 assert FLAGS.clip < 5.1, "gradient clip should't be too much"
@@ -104,13 +104,13 @@ def evaluate(sess, model, name, data, id_to_tag, logger):
         if f1 > best_test_f1:
             tf.assign(model.best_dev_f1, f1).eval()
             logger.info("new best dev f1 score:{:>.3f}".format(f1))
-        return f1 > best_test_f1
+        return f1 > best_test_f1, f1
     elif name == "test":
         best_test_f1 = model.best_test_f1.eval()
         if f1 > best_test_f1:
             tf.assign(model.best_test_f1, f1).eval()
             logger.info("new best test f1 score:{:>.3f}".format(f1))
-        return f1 > best_test_f1
+        return f1 > best_test_f1, f1
 
 
 def train():
@@ -176,17 +176,28 @@ def train():
     logger = get_logger(log_path)
     print_config(config, logger)
 
+    # 设置训练日志目录
+    train_log = os.path.join(FLAGS.logdir, "train")
+    if not os.path.exists(train_log):
+        os.makedirs(train_log)
+
     # limit GPU memory
     tf_config = tf.ConfigProto()
     tf_config.gpu_options.allow_growth = True
     steps_per_epoch = train_manager.len_data   # the length of batch data
     with tf.Session(config=tf_config) as sess:
         model = create_model(sess, Model, FLAGS.ckpt_path, load_word2vec, config, id_to_char, logger)
+        # 观察所建立的计算图
+        train_writer = tf.summary.FileWriter(train_log, sess.graph)
         logger.info("start training")
         loss = []
+        dev_f1 = []
+        test_f1 = []
         for i in range(100):
             for batch in train_manager.iter_batch(shuffle=True):
-                step, batch_loss = model.run_step(sess, True, batch)  # step是什么意思？
+                step, batch_loss, merged = model.run_step(sess, True, batch)  # step是global step
+                # 在迭代中输出到结果
+                train_writer.add_summary(merged, step)
                 loss.append(batch_loss)
                 if step % FLAGS.steps_check == 0:
                     iteration = step // steps_per_epoch + 1
@@ -194,12 +205,22 @@ def train():
                                 "NER loss:{:>9.6f}".format(
                         iteration, step%steps_per_epoch, steps_per_epoch, np.mean(loss)))
                     loss = []
+
             # use dev data to validation the model
-            best = evaluate(sess, model, "dev", dev_manager, id_to_tag, logger)
+            best, dev_f1_value = evaluate(sess, model, "dev", dev_manager, id_to_tag, logger)
+            # store the dev f1
+            dev_f1.append(dev_f1_value)
             if best:
                 save_model(sess, model, FLAGS.ckpt_path, logger)
-            # use current the best model to test
-            evaluate(sess, model, "test", test_manager, id_to_tag, logger)
+            # use current the  model to test
+            _, test_f1_value = evaluate(sess, model, "test", test_manager, id_to_tag, logger)
+            #   store the test f1
+            test_f1.append(test_f1_value)
+        # write the dev_f1 and test_f1 to file
+        f1_result = {}
+        f1_result["dev_f1"] = dev_f1
+        f1_result["test_f1"] = test_f1
+        write_data_to_file(f1_result, "f1_result")
 
 
 def evaluate_line():

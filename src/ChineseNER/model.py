@@ -40,6 +40,8 @@ class Model(object):
         self.global_step = tf.Variable(0, trainable=False)  # used to count training steps
         self.best_dev_f1 = tf.Variable(0.0, trainable=False)
         self.best_test_f1 = tf.Variable(0.0, trainable=False)
+        tf.summary.scalar("best_dev_f1", self.best_dev_f1)
+        tf.summary.scalar("best_test_f1", self.best_test_f1)
         # initialization for weights
         self.initializer = initializers.xavier_initializer()
 
@@ -79,6 +81,8 @@ class Model(object):
 
         # loss of the model
         self.loss = self.loss_layer(self.logits, self.lengths)
+        # Outputs a `Summary` protocol buffer containing a single scalar value
+        tf.summary.scalar('loss', self.loss)
 
         with tf.variable_scope("optimizer"):
             optimizer = self.config["optimizer"]
@@ -99,6 +103,8 @@ class Model(object):
 
         # saver of the model
         self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=5)
+
+        self.merged = tf.summary.merge_all()
 
     def embedding_layer(self, char_inputs, seg_inputs, config, name=None):
         """
@@ -233,10 +239,10 @@ class Model(object):
         """
         feed_dict = self.create_feed_dict(is_train, batch)
         if is_train:
-            global_step, loss, _ = sess.run(
-                [self.global_step, self.loss, self.train_op],
+            global_step, loss, _, merged = sess.run(
+                [self.global_step, self.loss, self.train_op, self.merged],
                 feed_dict)
-            return global_step, loss
+            return global_step, loss, merged
         else:
             lengths, logits = sess.run([self.lengths, self.logits], feed_dict)
             return lengths, logits
@@ -289,7 +295,7 @@ class Model(object):
 
     def evaluate_line(self, sess, inputs, id_to_tag):
         trans = self.trans.eval()
-        lengths, scores = self.run_step(sess, False, inputs)
+        lengths, scores, merged = self.run_step(sess, False, inputs)
         batch_paths = self.decode(scores, lengths, trans)
         tags = [id_to_tag[idx] for idx in batch_paths[0]]
         return result_to_json(inputs[0][0], tags)
