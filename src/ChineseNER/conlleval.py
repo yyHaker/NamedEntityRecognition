@@ -20,6 +20,7 @@ ANY_SPACE = '<SPACE>'
 class FormatError(Exception):
     pass
 
+
 Metrics = namedtuple('Metrics', 'tp fp fn prec rec fscore')
 
 
