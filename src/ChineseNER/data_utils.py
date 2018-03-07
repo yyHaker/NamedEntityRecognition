@@ -282,6 +282,7 @@ def input_from_line(line, char_to_id):
                    for char in line]])
     inputs.append([get_seg_features(line)])
     inputs.append([[]])
+    print('inputs: ', inputs)
     return inputs
 
 

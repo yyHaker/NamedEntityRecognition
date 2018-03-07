@@ -294,8 +294,14 @@ class Model(object):
         return results
 
     def evaluate_line(self, sess, inputs, id_to_tag):
+        """
+        :param sess: session to run the model
+        :param inputs:
+        :param id_to_tag:  index to tag name
+        :return:
+        """
         trans = self.trans.eval()
-        lengths, scores, merged = self.run_step(sess, False, inputs)
+        lengths, scores = self.run_step(sess, False, inputs)
         batch_paths = self.decode(scores, lengths, trans)
         tags = [id_to_tag[idx] for idx in batch_paths[0]]
         return result_to_json(inputs[0][0], tags)

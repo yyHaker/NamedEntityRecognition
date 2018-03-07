@@ -18,8 +18,8 @@ from data_utils import load_word2vec, create_input, input_from_line, BatchManage
 # tf.app.flags.DEFINE_xxx()就是添加命令行的optional argument，
 # 而tf.app.flags.FLAGS可以从对应的命令行参数取出参数。
 flags = tf.app.flags
-flags.DEFINE_boolean("clean",       True,      "clean train folder")
-flags.DEFINE_boolean("train",       True,      "Wither train the model")
+flags.DEFINE_boolean("clean",       False,      "clean train folder")
+flags.DEFINE_boolean("train",        False,      "Wither train the model")
 # configurations for the model
 flags.DEFINE_integer("seg_dim",     20,         "Embedding size for segmentation, 0 if not used")
 flags.DEFINE_integer("char_dim",    100,        "Embedding size for characters")
@@ -240,10 +240,32 @@ def evaluate_line():
             #     print(result)
             # except Exception as e:
             #     logger.info(e)
-
                 line = input("请输入测试句子:")
                 result = model.evaluate_line(sess, input_from_line(line, char_to_id), id_to_tag)
                 print(result)
+
+
+def ner_text(data):
+    """use NER to recognize data"""
+    # 一行行的读取数据
+    results = []
+    sents = data.split('\n')
+
+    # 加载模型识别数据
+    config = load_config(FLAGS.config_file)
+    logger = get_logger(FLAGS.log_file)
+    # limit GPU memory
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+    with open(FLAGS.map_file, "rb") as f:
+        char_to_id, id_to_char, tag_to_id, id_to_tag = pickle.load(f)
+    with tf.Session(config=tf_config) as sess:
+        model = create_model(sess, Model, FLAGS.ckpt_path, load_word2vec, config, id_to_char, logger)
+        for sent in sents:
+            result = model.evaluate_line(sess, input_from_line(sent, char_to_id), id_to_tag)
+            print(result['entities'])
+            results.append(result['entities'])
+    return results
 
 
 def main(_):
@@ -252,10 +274,12 @@ def main(_):
             clean(FLAGS)
         train()
     else:
-        evaluate_line()
+        data = "京东商城购物很方便！"
+        ner_text(data)
 
 
 if __name__ == "__main__":
     tf.app.run(main)
 
+# TODO: 在特定领域的数据上进行训练以提高F值！
 
