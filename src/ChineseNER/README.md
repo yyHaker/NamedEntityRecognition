@@ -3,8 +3,7 @@ This repository contains a simple demo for chinese named entity recognition.
 site: https://github.com/zjy-ucas/ChineseNER
 
 ## Contributer
-- [Jingyuan Zhang](https://github.com/zjy-ucas)
-- [Mingjie Chen](https://github.com/superthierry)
+- [yyhaker](https://github.com/yyHaker)
 - some data processing codes from [glample/tagger](https://github.com/glample/tagger)
 
 
@@ -28,7 +27,7 @@ Our model is similar to the state-of-the-art Chinese named entity recognition mo
 - dropout rate: 0.5
 - learning rate: 0.001
 
-Word vectors are trained with gensim version of word2vec on Chinese WiKi corpus, provided by [Chuanhai Dong](https://github.com/sea2603).
+Word vectors are trained with gensim version of word2vec on Chinese WiKi corpus.
 
 ### Train the model with default parameters:
 ```shell
