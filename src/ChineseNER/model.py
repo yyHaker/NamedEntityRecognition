@@ -5,9 +5,6 @@ are projected into sequence of dense vectors, and concated with extra features a
 recurrent layer, here we employ one hot vectors representing word boundary features for illustration.
 The recurrent layer is a bidirectional LSTM layer, outputs of forward and backword vectors are
 concated and projected to score of each tag. A CRF layer is used to overcome label-bias problem.
-
-     Our model is similar to the state-of-the-art Chinese named entity recognition model proposed in
-Character-Based LSTM-CRF with Radical-Level Features for Chinese Named Entity Recognition.
 """
 import numpy as np
 import tensorflow as tf
@@ -254,7 +251,7 @@ class Model(object):
         :param matrix: transaction matrix for inference
         :return: [batch_size, real length]
         """
-        # inference final labels usa viterbi Algorithm
+        # inference final labels use viterbi Algorithm
         paths = []
         small = -1000.0
         start = np.asarray([[small]*self.num_tags +[0]])  # (num_tags + 1)

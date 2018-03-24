@@ -3,7 +3,7 @@ import numpy as np
 from utils import load_data_from_file
 import matplotlib.pyplot as plt
 
-f1_result = load_data_from_file('f1_result')
+f1_result = load_data_from_file('current_results/F1_90.064/f1_result')
 dev_f1 = f1_result["dev_f1"]
 test_f1 = f1_result["test_f1"]
 

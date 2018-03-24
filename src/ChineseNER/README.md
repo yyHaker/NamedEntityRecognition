@@ -1,5 +1,5 @@
 ## Recurrent neural networks for Chinese named entity recognition in TensorFlow
-This repository contains a simple demo for chainese named entity recognition.
+This repository contains a simple demo for chinese named entity recognition.
 site: https://github.com/zjy-ucas/ChineseNER
 
 ## Contributer

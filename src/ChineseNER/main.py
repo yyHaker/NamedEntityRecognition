@@ -18,8 +18,8 @@ from data_utils import load_word2vec, create_input, input_from_line, BatchManage
 # tf.app.flags.DEFINE_xxx()就是添加命令行的optional argument，
 # 而tf.app.flags.FLAGS可以从对应的命令行参数取出参数。
 flags = tf.app.flags
-flags.DEFINE_boolean("clean",       False,      "clean train folder")
-flags.DEFINE_boolean("train",        False,      "Wither train the model")
+flags.DEFINE_boolean("clean",       True,      "clean train folder")
+flags.DEFINE_boolean("train",        True,      "Wither train the model")
 # configurations for the model
 flags.DEFINE_integer("seg_dim",     20,         "Embedding size for segmentation, 0 if not used")
 flags.DEFINE_integer("char_dim",    100,        "Embedding size for characters")
@@ -28,7 +28,7 @@ flags.DEFINE_string("tag_schema",   "iobes",    "tagging schema iobes or iob")
 
 # configurations for training
 flags.DEFINE_float("clip",          5,          "Gradient clip")
-flags.DEFINE_float("dropout",       0.5,        "Dropout rate")
+flags.DEFINE_float("dropout",       0.5,        "Dropout rate")  # 0表示不使用dropout
 flags.DEFINE_float("batch_size",    20,         "batch size")
 flags.DEFINE_float("lr",            0.001,      "Initial learning rate")
 flags.DEFINE_string("optimizer",    "adam",     "Optimizer for training")
@@ -50,6 +50,7 @@ flags.DEFINE_string("emb_file", default_value="wiki_100.utf8", docstring="Path f
 flags.DEFINE_string("train_file", default_value="data/example.train", docstring="Path for train data")
 flags.DEFINE_string("dev_file", default_value="data/example.dev", docstring="Path for dev data")
 flags.DEFINE_string("test_file", default_value="data/example.test", docstring="Path for test data")
+
 flags.DEFINE_string("logdir", "logdir", "path to save the log....")
 
 FLAGS = tf.app.flags.FLAGS
@@ -210,6 +211,7 @@ def train():
             best, dev_f1_value = evaluate(sess, model, "dev", dev_manager, id_to_tag, logger)
             # store the dev f1
             dev_f1.append(dev_f1_value)
+            # save the best model
             if best:
                 save_model(sess, model, FLAGS.ckpt_path, logger)
             # use current the  model to test
