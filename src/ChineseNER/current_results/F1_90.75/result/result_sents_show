@@ -1841,7 +1841,7 @@ pred:	O	O	O	B-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	O	O	B-PER	I-PER	I-PER	O	B-PER	I-PER	
 sent:	受	日	元	贬	值	影	响	，	最	近	韩	国	股	市	呈	不	稳	定	状	态	，	随	着	日	元	对	美	元	汇	率	跌	破	0	0	0	∶	0	大	关	，	投	资	者	不	安	心	理	更	加	严	重	。
 true:	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 pred:	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
-sent:	同	一	天	，	约	旦	议	会	发	表	声	明	指	出	，	以	色	列	政	府	批	准	耶	路	撒	冷	扩	建	计	划	旨	在	扼	杀	有	关	各	方	为	中	东	和	平	所	作	出	的	种	种	努	力	。
+sent:	同	一	天	，	约         旦	        议	        会	        发	表	声	明	指	出	，	以          色	    列	        政	府	批	准	耶	        路       	撒	        冷	        扩	建	计	划	旨	在	扼	杀	有	关	各	方	为	中     	东     	和	平	所	作	出	的	种	种	努	力	。
 true:	O	O	O	O	B-ORG	I-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	B-LOC	I-LOC	I-LOC	O	O	O	O	B-LOC	I-LOC	I-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O
 pred:	O	O	O	O	B-ORG	I-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	B-LOC	I-LOC	I-LOC	O	O	O	O	B-LOC	I-LOC	I-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O
 sent:	江	苏	男	排	尽	管	本	轮	客	场	以	两	个	三	比	○	轻	取	湖	北	男	排	，	积	分	与	四	川	男	排	相	同	，	但	由	于	小	分	略	低	于	四	川	队	，	只	能	屈	居	亚	军	。
@@ -1856,13 +1856,13 @@ pred:	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	
 sent:	我	们	怀	着	十	分	崇	敬	的	心	情	，	纪	念	我	党	的	忠	实	朋	友	，	我	国	民	主	革	命	时	期	著	名	的	爱	国	民	主	人	士	杜	重	远	先	生	诞	生	0	0	0	周	年	。
 true:	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	B-PER	I-PER	I-PER	O	O	O	O	O	O	O	O	O	O
 pred:	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	B-PER	I-PER	I-PER	O	O	O	O	O	O	O	O	O	O
-sent:	韩	国	财	政	经	济	部	长	官	李	揆	成	0	0	日	说	，	韩	国	经	济	今	年	可	能	出	现	0	0	年	来	首	次	负	增	长	，	失	业	人	数	最	高	可	能	达	到	0	0	0	万	。
+sent:	韩	        国	        财	        政	        经	        济	        部	        长	官	李	        揆	        成	        0	0	日	说	，	韩	        国	        经	济	今	年	可	能	出	现	0	0	年	来	首	次	负	增	长	，	失	业	人	数	最	高	可	能	达	到	0	0	0	万	。
 true:	B-ORG	I-ORG	I-ORG	I-ORG	I-ORG	I-ORG	I-ORG	O	O	B-PER	I-PER	I-PER	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 pred:	B-ORG	I-ORG	I-ORG	I-ORG	I-ORG	I-ORG	I-ORG	O	O	B-PER	I-PER	I-PER	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 sent:	根	据	安	理	会	的	决	议	，	取	消	联	合	国	制	裁	的	前	提	是	伊	拉	克	完	全	执	行	安	理	会	的	有	关	决	议	，	销	毁	并	不	再	制	造	大	规	模	杀	伤	性	武	器	。
 true:	O	O	B-ORG	I-ORG	I-ORG	O	O	O	O	O	O	B-ORG	I-ORG	I-ORG	O	O	O	O	O	O	B-LOC	I-LOC	I-LOC	O	O	O	O	B-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 pred:	O	O	B-ORG	I-ORG	I-ORG	O	O	O	O	O	O	B-ORG	I-ORG	I-ORG	O	O	O	O	O	O	B-LOC	I-LOC	I-LOC	O	O	O	O	B-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
-sent:	霍	华	德	在	会	见	中	说	，	董	建	华	先	生	访	澳	必	将	促	进	澳	大	利	亚	和	香	港	在	贸	易	、	投	资	方	面	的	合	作	，	增	进	彼	此	在	人	员	方	面	的	往	来	。
+sent:	霍	         华	    德	        在	会	见	中	说	，	董	        建	        华	        先	生	访	澳	        必	将	促	进	澳	        大	        利	        亚	        和	香	        港	        在	贸	易	、	投	资	方	面	的	合	作	，	增	进	彼	此	在	人	员	方	面	的	往	来	。
 true:	B-PER	I-PER	I-PER	O	O	O	O	O	O	B-PER	I-PER	I-PER	O	O	O	B-LOC	O	O	O	O	B-LOC	I-LOC	I-LOC	I-LOC	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 pred:	B-PER	I-PER	I-PER	O	O	O	O	O	O	B-PER	I-PER	I-PER	O	O	O	B-LOC	O	O	O	O	B-LOC	I-LOC	I-LOC	I-LOC	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 sent:	拉	莫	斯	对	中	国	派	特	使	参	加	菲	独	立	0	0	0	周	年	庆	典	表	示	衷	心	感	谢	，	并	请	谢	非	转	达	他	对	江	泽	民	主	席	的	亲	切	问	候	和	良	好	祝	愿	。
@@ -3065,7 +3065,7 @@ pred:	O	O	O	O	O	O	B-LOC	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	
 sent:	六	月	七	日	，	在	全	国	田	径	大	奖	赛	总	决	赛	最	后	一	天	的	比	赛	中	，	山	西	年	轻	选	手	魏	建	华	在	女	子	标	枪	决	赛	中	技	压	群	芳	，	以	六	十	二	米	七	三	的	成	绩	夺	冠	。
 true:	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	B-PER	I-PER	I-PER	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 pred:	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	B-PER	I-PER	I-PER	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
-sent:	丹	麦	队	的	表	现	似	乎	不	怎	么	好	，	在	热	身	赛	中	输	了	两	场	，	尤	其	是	以	0	∶	0	负	于	未	能	进	入	世	界	杯	决	赛	的	瑞	典	，	被	看	作	是	“	近	来	最	糟	糕	的	失	败	”	。
+sent:	丹     	麦     	队     	的	表	现	似	乎	不	怎	么	好	，	在	热	身	赛	中	输	了	两	场	，	尤	其	是	以	0	∶	0	负	于	未	能	进	入	世	界	杯	决	赛	的	瑞	        典	        ，	被	看	作	是	“	近	来	最	糟	糕	的	失	败	”	。
 true:	B-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 pred:	B-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 sent:	本	报	深	圳	0	月	0	0	日	电	全	球	散	打	搏	击	拳	王	争	霸	赛	从	0	月	0	0	日	晚	在	深	圳	世	界	之	窗	广	场	拉	开	帷	幕	以	来	，	经	过	0	天	的	角	逐	于	今	晚	在	此	间	结	束	。
@@ -3221,9 +3221,9 @@ pred:	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	
 sent:	下	半	场	即	将	结	束	时	英	格	兰	队	0	0	号	斯	克	尔	斯	在	禁	区	前	沿	一	记	侧	身	射	门	将	比	分	差	距	扩	大	至	0	∶	0	，	而	突	尼	斯	队	此	时	已	没	有	了	挽	回	失	败	的	时	间	。
 true:	O	O	O	O	O	O	O	O	B-ORG	I-ORG	I-ORG	I-ORG	O	O	O	B-PER	I-PER	I-PER	I-PER	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	B-ORG	I-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 pred:	O	O	O	O	O	O	O	O	B-ORG	I-ORG	I-ORG	I-ORG	O	O	O	B-PER	I-PER	I-PER	I-PER	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	B-ORG	I-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	O	O	O	O	O	O	O
-sent:	安	馆	长	介	绍	，	海	大	图	书	馆	的	开	放	式	办	馆	模	式	特	点	有	三	：	第	一	，	所	有	图	书	资	料	向	社	会	读	者	开	放	，	成	年	人	想	看	书	就	进	门	，	不	看	身	份	，	不	验	证	件	。
+sent:	安	        馆	长	介	绍	，	海	        大	        图	        书     	馆	        的	开	放	式	办	馆	模	式	特	点	有	三	：	第	一	，	所	有	图	书	资	料	向	社	会	读	者	开	放	，	成	年	人	想	看	书	就	进	门	，	不	看	身	份	，	不	验	证	件	。
 true:	B-PER	O	O	O	O	O	B-LOC	I-LOC	I-LOC	I-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
-pred:	O	O	O	O	O	O	B-LOC	I-LOC	I-LOC	I-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
+pred:	O	        O	O	O	O	O	B-LOC	I-LOC	I-LOC	I-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 sent:	在	0	0	0	0	年	实	现	“	软	着	陆	”	以	后	，	我	国	经	济	从	供	给	方	面	，	具	备	了	使	经	济	增	长	速	度	达	到	或	略	超	过	0	％	、	物	价	涨	幅	保	持	在	0	0	％	以	内	的	能	力	。
 true:	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 pred:	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
