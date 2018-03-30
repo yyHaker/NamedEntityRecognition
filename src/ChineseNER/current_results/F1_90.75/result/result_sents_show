@@ -1841,7 +1841,7 @@ pred:	O	O	O	B-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	O	O	B-PER	I-PER	I-PER	O	B-PER	I-PER	
 sent:	受	日	元	贬	值	影	响	，	最	近	韩	国	股	市	呈	不	稳	定	状	态	，	随	着	日	元	对	美	元	汇	率	跌	破	0	0	0	∶	0	大	关	，	投	资	者	不	安	心	理	更	加	严	重	。
 true:	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
 pred:	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O	O
-sent:	同	一	天	，	约         旦	        议	        会	        发	表	声	明	指	出	，	以          色	    列	        政	府	批	准	耶	        路       	撒	        冷	        扩	建	计	划	旨	在	扼	杀	有	关	各	方	为	中     	东     	和	平	所	作	出	的	种	种	努	力	。
+sent:	同	一	天	，	约         旦	    议	        会	        发	表	声	明	指	出	，	以        色	        列	        政	府	批	准	耶	        路       	撒	        冷	        扩	建	计	划	旨	在	扼	杀	有	关	各	方	为	中        东     	和	平	所	作	出	的	种	种	努	力	。
 true:	O	O	O	O	B-ORG	I-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	B-LOC	I-LOC	I-LOC	O	O	O	O	B-LOC	I-LOC	I-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O
 pred:	O	O	O	O	B-ORG	I-ORG	I-ORG	I-ORG	O	O	O	O	O	O	O	B-LOC	I-LOC	I-LOC	O	O	O	O	B-LOC	I-LOC	I-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O	O	O	B-LOC	I-LOC	O	O	O	O	O	O	O	O	O	O	O
 sent:	江	苏	男	排	尽	管	本	轮	客	场	以	两	个	三	比	○	轻	取	湖	北	男	排	，	积	分	与	四	川	男	排	相	同	，	但	由	于	小	分	略	低	于	四	川	队	，	只	能	屈	居	亚	军	。

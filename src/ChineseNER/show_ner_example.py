@@ -7,12 +7,14 @@ from loader import load_sentences
 
 def transfer_sent(sent):
     """转换sent指定格式的字符串"""
-    sentens = "sent:\t"
+    # sentens = "sent:\t"
+    sentens = "sent: "
     true = "true:\t"
     predict = "pred:\t"
     for word in sent[:-1]:
         # print("word: ", word, "length: ", len(word))
-        sentens += word[0] + "\t"
+        # sentens += word[0] + "\t"
+        sentens += word[0]
         true += word[1] + "\t"
         predict += word[2] + "\t"
     sentens += sent[-1][0]
