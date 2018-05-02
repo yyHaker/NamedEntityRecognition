@@ -204,7 +204,7 @@ def train():
                     iteration = step // steps_per_epoch + 1
                     logger.info("iteration:{} step:{}/{}, "
                                 "NER loss:{:>9.6f}".format(
-                        iteration, step%steps_per_epoch, steps_per_epoch, np.mean(loss)))
+                        iteration, step % steps_per_epoch, steps_per_epoch, np.mean(loss)))
                     loss = []
 
             # use dev data to validation the model

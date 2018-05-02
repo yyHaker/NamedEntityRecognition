@@ -18,6 +18,7 @@ import main
 import threading
 from multiprocessing.pool import ThreadPool
 
+
 class MainEdit(QWidget):
     """自定义控件"""
     def __init__(self):
