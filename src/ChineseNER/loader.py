@@ -175,3 +175,26 @@ def load_maps(save_path):
     # with codecs.open(save_path, "r", encoding="utf8") as f:
     #     pickle.load(save_path, f)
 
+
+def transfer_data_to_text(path, store_path, lower=True, zeros=False):
+    """
+    transfer the data to text.
+    :param path:
+    :param store_path:
+    :param lower:
+    :param zeros:
+    :return:
+    """
+    sentences = load_sentences(path, lower=lower, zeros=False)
+    with codecs.open(store_path, mode='w', encoding='utf-8') as f:
+        for sents in sentences[:20000]:
+            sent = ""
+            for item in sents:
+                sent = sent + str(item[0])
+            f.writelines(sent+"\n")
+    print("write data to {} done!".format(store_path))
+
+
+if __name__ == "__main__":
+    transfer_data_to_text("data/example.train", store_path='train_passage.txt',
+                          lower=True, zeros=False)

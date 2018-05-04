@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (QMainWindow, QTextEdit, QDesktopWidget,
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QRect
 import codecs
+import time
 
 
 import main
@@ -124,6 +125,7 @@ class MainWindow(QMainWindow):
 
     def ner(self):
         """读入文本， 进行实体识别，并给出结果"""
+        s = time.time()
         # 获取content TextEdit中的文本
         data = self.textEdit.contentTextEdit.toPlainText()
         # 一行行的读取并调用算法处理，将结果显示在result edit中
@@ -132,11 +134,13 @@ class MainWindow(QMainWindow):
         pool = ThreadPool(processes=1)
         async_result = pool.apply_async(main.ner_text, (data, ))
         return_val = async_result.get()   # 得到返回值
+        e = time.time()
         print("resut data", return_val)
+        print("ner cost time {} seconds".format(e - s))
         # self.textEdit.resultTextDdit.setText("")
         restr = ""
         for result in return_val:
-            print(str(result))
+            # print(str(result))
             restr += str(result) + "\n"
         # print("-"*100)
         # print("restr: ", restr)
